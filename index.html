@@ -224,6 +224,8 @@ let shochiKubun = '社内不良(KP)';
 let items = []; // {name, qty}
 let stream = null;
 let scanning = false;
+// TODO: Google Identity Servicesでのログイン実装後、ここにログイン中のメールアドレスを入れる
+let currentUserEmail = null;
 
 function init() {
   const sel = document.getElementById('item-select');
@@ -397,6 +399,9 @@ function submitForm() {
     customer: document.getElementById('f-customer').textContent,
     drawing: document.getElementById('f-drawing').textContent,
     shochiKubun,
+    // 品証担当者: 手入力させず、ログイン中のGoogleアカウントをそのまま記録する(不良〇月シートC列)。
+    // TODO: Google Identity Servicesでのログイン実装後、currentUserEmail をここへ渡す。
+    hinshoTantosha: currentUserEmail || '(未ログイン)',
     kishu: document.getElementById('f-kishu').value,
     setsubi: document.getElementById('f-setsubi').value,
     kakosha: document.getElementById('f-kakosha').value,
