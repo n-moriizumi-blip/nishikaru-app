@@ -300,20 +300,36 @@ function scanLoop() {
   requestAnimationFrame(scanLoop);
 }
 
+/**
+ * 作業票のQRコードは製造番号そのものではなく、I-Pro専用URL
+ * (例: http://192.168.0.131:80//workresult/index/FA01/H260400284)を指しており、
+ * 製造番号はその末尾の区間だけ。URL形式ならそこだけ取り出し、それ以外はそのまま使う。
+ */
+function extractMfgNo(text) {
+  text = (text || '').trim();
+  if (/^https?:\/\//i.test(text)) {
+    const parts = text.split('/').filter(Boolean); // 連続するスラッシュ(空区間)を無視
+    return parts[parts.length - 1] || text;
+  }
+  return text;
+}
+
 function onQrDetected(text) {
   stopCamera();
   document.getElementById('scan-hint').textContent = '読み取りました。検索中...';
-  lookupByManufacturingNumber(text.trim()).then(result => {
-    fillFormFromLookup(text.trim(), result);
+  const mfgNo = extractMfgNo(text);
+  lookupByManufacturingNumber(mfgNo).then(result => {
+    fillFormFromLookup(mfgNo, result);
     showScreen('form');
   });
 }
 
 function openManualEntry() {
-  const mfgNo = prompt('作業票に印字された製造番号を入力してください(例: H260300016)');
-  if (!mfgNo) return;
-  lookupByManufacturingNumber(mfgNo.trim()).then(result => {
-    fillFormFromLookup(mfgNo.trim(), result);
+  const input = prompt('作業票に印字された製造番号を入力してください(例: H260300016)');
+  if (!input) return;
+  const mfgNo = extractMfgNo(input);
+  lookupByManufacturingNumber(mfgNo).then(result => {
+    fillFormFromLookup(mfgNo, result);
     stopCamera();
     showScreen('form');
   });
