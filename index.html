@@ -213,6 +213,10 @@
    実装済みのGAS Web Appができたら fetchLookup / fetchSubmit を差し替える。
    ========================================================================= */
 
+// GAS Web AppのデプロイURL。「拡張機能 > Apps Script」→「デプロイ」→「新しいデプロイ」で
+// 発行されたURLをここに貼り付ける(WebApi.gs参照)。空のままだとモックデータで動作する。
+const GAS_URL = '';
+
 // 不良項目マスタ(SetupSpreadsheet.gsのDEFECT_ITEMSと同じ29項目)
 const DEFECT_ITEMS = [
   '外径大','外径小','内径大','内径小','長さ不良','2次加工部寸法不良','ネジ不良','穴ズレ','芯ズレ・振れ大','テーパ不良','面取りの不良','挽目不良(面粗度)','その他の寸法不良',
@@ -316,19 +320,31 @@ function openManualEntry() {
 }
 
 /**
- * 製造番号から得意先名・品番(図番)を検索する。
- * TODO: GAS Web Appの doGet?mode=lookup&mfgNo=... に差し替える(「進捗状況照会」シートを検索する想定)。
- * 今はモックデータを返すだけ。
+ * 製造番号から得意先名・品番(図番)を検索する(GAS Web App の doGet?mode=lookup を呼ぶ)。
+ * GAS_URL が未設定の間はモックデータを返す。
  */
 function lookupByManufacturingNumber(mfgNo) {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve({
-        customer: '協和精工第一',
-        drawing: 'C9050-177'
-      });
-    }, 500);
-  });
+  if (!GAS_URL) {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve({ found: true, customer: '協和精工第一(モック)', drawing: 'C9050-177' });
+      }, 500);
+    });
+  }
+  return fetch(GAS_URL + '?mode=lookup&mfgNo=' + encodeURIComponent(mfgNo))
+    .then(res => res.json())
+    .then(data => {
+      if (!data.found) {
+        showToast('該当する製造番号が見つかりませんでした');
+        return { customer: '', drawing: '' };
+      }
+      if (data.error) showToast(data.error);
+      return data;
+    })
+    .catch(err => {
+      showToast('検索に失敗しました: ' + err.message);
+      return { customer: '', drawing: '' };
+    });
 }
 
 function fillFormFromLookup(mfgNo, result) {
@@ -385,16 +401,13 @@ function showToast(msg) {
   setTimeout(() => toast.classList.remove('show'), 2200);
 }
 
-/**
- * TODO: GAS Web Appの doPost (action=submit) に差し替える。
- * 今はコンソール出力とデモ完了画面表示のみ。
- */
 function submitForm() {
   if (items.length === 0) {
     showToast('不良項目を1件以上追加してください');
     return;
   }
   const payload = {
+    action: 'submit',
     mfgNo: document.getElementById('f-mfgno').textContent,
     customer: document.getElementById('f-customer').textContent,
     drawing: document.getElementById('f-drawing').textContent,
@@ -411,15 +424,32 @@ function submitForm() {
     items,
     biko: document.getElementById('f-biko').value
   };
-  console.log('[品質不具合報告] 送信予定データ(デモ・未接続):', payload);
-  fetchSubmit(payload).then(() => {
+  console.log('[品質不具合報告] 送信データ:', payload);
+  fetchSubmit(payload).then(result => {
+    if (result.ok === false) {
+      showToast('送信に失敗しました: ' + (result.error || ''));
+      return;
+    }
     showScreen('done');
   });
 }
 
+/**
+ * GAS Web App の doPost(action=submit) を呼ぶ。GAS_URL が未設定の間はモック応答を返す。
+ * Content-Type は text/plain にして、ブラウザのCORSプリフライトを避けている
+ * (GAS Web Appはプリフライト(OPTIONS)に対応していないため。勤怠申請アプリと同じ方式)。
+ */
 function fetchSubmit(payload) {
-  // TODO: 実際のGAS Web Appエンドポイントへ fetch(POST) する
-  return Promise.resolve();
+  if (!GAS_URL) {
+    return new Promise(resolve => setTimeout(() => resolve({ ok: true, mock: true }), 400));
+  }
+  return fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  })
+    .then(res => res.json())
+    .catch(err => ({ ok: false, error: err.message }));
 }
 
 init();
