@@ -1,0 +1,10 @@
+{
+  "name": "西軽精機アプリ",
+  "short_name": "西軽精機",
+  "description": "品質不具合報告 ほか(統合予定)",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#E9ECEF",
+  "theme_color": "#1F3A52",
+  "icons": []
+}

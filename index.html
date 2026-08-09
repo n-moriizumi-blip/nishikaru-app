@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#1F3A52">
+<title>西軽精機アプリ｜品質不具合報告</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+    background: #E9ECEF;
+    margin: 0;
+    padding: 24px 16px 60px;
+    color: #1D2226;
+  }
+  .card {
+    max-width: 480px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+  }
+  .card-header { background: #1F3A52; padding: 18px 24px 16px; text-align: center; }
+  .card-header .brand { font-size: 11px; font-weight: 700; color: #F2A900; letter-spacing: .08em; margin: 0 0 4px; }
+  .card-header .back-link { display: inline-block; font-size: 13px; color: rgba(255,255,255,.75); cursor: pointer; margin: 0 0 6px; background: none; border: none; padding: 0; }
+  .card-header h1 { font-size: 19px; margin: 0 0 4px; color: #fff; }
+  .card-header .sub { font-size: 12.5px; color: rgba(255,255,255,.78); margin: 0; }
+  .card-body { padding: 20px 24px 24px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* --- QRスキャン画面 --- */
+  .viewfinder {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    background: #0F1D28;
+    overflow: hidden;
+    margin: 0 0 16px;
+  }
+  .viewfinder video { width: 100%; height: 100%; object-fit: cover; }
+  .corner { position: absolute; width: 26px; height: 26px; border: 3px solid #F2A900; }
+  .corner.tl { top: 12px; left: 12px; border-right: none; border-bottom: none; border-radius: 6px 0 0 0; }
+  .corner.tr { top: 12px; right: 12px; border-left: none; border-bottom: none; border-radius: 0 6px 0 0; }
+  .corner.bl { bottom: 12px; left: 12px; border-right: none; border-top: none; border-radius: 0 0 0 6px; }
+  .corner.br { bottom: 12px; right: 12px; border-left: none; border-top: none; border-radius: 0 0 6px 0; }
+  .scanline { position: absolute; left: 14px; right: 14px; height: 2px; background: #F2A900; top: 46%; box-shadow: 0 0 8px 1px rgba(242,169,0,.7); }
+  @media (prefers-reduced-motion: no-preference) {
+    .scanline { animation: scananim 2.4s ease-in-out infinite; }
+  }
+  @keyframes scananim { 0%,100% { top: 16%; } 50% { top: 80%; } }
+  .cam-status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px; color: #cbd5db; font-size: 13px; line-height: 1.6; }
+
+  .hint { font-size: 13.5px; font-weight: 600; margin: 0 0 4px; text-align: center; }
+  .hint2 { font-size: 12px; color: #5C6670; margin: 0; text-align: center; line-height: 1.5; }
+
+  label { display: block; font-size: 14px; font-weight: 600; margin: 18px 0 6px; }
+  label.field-label { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; color: #1F3A52; margin: 20px 0 8px; }
+  label.field-label::before { content: "⬡"; color: #F2A900; font-size: 12px; }
+
+  input[type="text"], input[type="number"], select, textarea {
+    width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid #C7CDD3; border-radius: 10px; background: #fff; font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 60px; }
+
+  .autofill-card { background: #F7F9FB; border: 1px solid #DCE3E9; border-radius: 12px; padding: 12px 14px; margin-bottom: 4px; }
+  .autofill-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: #7A5A00; background: #FFF1CC; padding: 3px 8px; border-radius: 20px; margin-bottom: 8px; }
+  .kv { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-top: 1px solid #E3E8EC; }
+  .kv:first-of-type { border-top: none; }
+  .kv .k { font-size: 11.5px; color: #5C6670; }
+  .kv .v { font-size: 14px; font-weight: 700; }
+
+  .pill-group { display: flex; gap: 8px; }
+  .pill { flex: 1; text-align: center; padding: 10px 6px; border-radius: 10px; border: 1px solid #C7CDD3; font-size: 13px; font-weight: 600; background: #fff; color: #5C6670; cursor: pointer; user-select: none; }
+  .pill.on { background: #E4EAF0; border-color: #1F3A52; color: #1F3A52; font-weight: 700; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .item-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .item-row select { flex: 2; }
+  .item-row input { flex: 1; }
+  .item-row button { flex: 0 0 auto; padding: 10px 12px; border-radius: 10px; border: 1px solid #C7CDD3; background: #fff; font-size: 13px; font-weight: 700; color: #1F3A52; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+  .chip { display: flex; align-items: center; gap: 6px; background: #FDECC8; color: #6B4C00; font-size: 12.5px; font-weight: 600; padding: 6px 8px 6px 12px; border-radius: 20px; }
+  .chip button { width: 17px; height: 17px; border-radius: 50%; background: rgba(0,0,0,.12); border: none; display: flex; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; color: inherit; }
+
+  .primary-btn { width: 100%; margin-top: 24px; padding: 13px; font-size: 16px; font-weight: 700; color: #1D2226; background: #F2A900; border: none; border-radius: 12px; cursor: pointer; }
+  .primary-btn:disabled { background: #D9DDE1; color: #8A93A0; cursor: default; }
+  .secondary-btn { width: 100%; margin-top: 10px; padding: 11px; font-size: 14px; background: #fff; color: #1F3A52; border: 1px solid #C7CDD3; border-radius: 12px; cursor: pointer; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: #1F3A52; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 13.5px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.2); opacity: 0; pointer-events: none; transition: opacity .25s ease; max-width: 90vw; text-align: center;
+  }
+  .toast.show { opacity: 1; }
+
+  .done-icon { width: 56px; height: 56px; border-radius: 50%; background: #E4EAF0; color: #1F3A52; font-size: 28px; display: flex; align-items: center; justify-content: center; margin: 8px auto 14px; }
+  .done h2 { text-align: center; }
+  .done .hint2 { margin-bottom: 20px; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="card-header">
+    <p class="brand">西軽精機</p>
+
+    <!-- ① QRスキャン画面 -->
+    <div id="screen-scan" class="screen active">
+      <h1>品質不具合報告</h1>
+      <p class="sub">作業票のQRコードを読み取ってください</p>
+    </div>
+
+    <!-- ② 入力フォーム画面 -->
+    <div id="screen-form-header" class="screen">
+      <button class="back-link" onclick="goToScan()">← QR読み取りに戻る</button>
+      <h1>不良内容の入力</h1>
+      <p class="sub">残りの項目を入力してください</p>
+    </div>
+
+    <!-- ③ 完了画面 -->
+    <div id="screen-done-header" class="screen">
+      <h1>送信内容の確認</h1>
+      <p class="sub">この画面はデモ版です</p>
+    </div>
+  </div>
+
+  <div class="card-body">
+
+    <!-- ① QRスキャン画面 -->
+    <div id="screen-scan-body" class="screen active">
+      <div class="viewfinder">
+        <video id="qr-video" playsinline muted></video>
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+        <div class="scanline"></div>
+        <div id="cam-status" class="cam-status"></div>
+      </div>
+      <p class="hint" id="scan-hint">QRコードを枠内に合わせてください</p>
+      <p class="hint2">作業票に印字された製造番号のQRコードを読み取ります</p>
+      <button class="secondary-btn" onclick="openManualEntry()">QRが読めないときは手入力する</button>
+    </div>
+
+    <!-- ② 入力フォーム画面 -->
+    <div id="screen-form" class="screen">
+      <div class="autofill-card">
+        <span class="autofill-tag">✓ QRから自動入力</span>
+        <div class="kv"><span class="k">製造番号</span><span class="v" id="f-mfgno">—</span></div>
+        <div class="kv"><span class="k">得意先名</span><span class="v" id="f-customer">—</span></div>
+        <div class="kv"><span class="k">品番(図番)</span><span class="v" id="f-drawing">—</span></div>
+      </div>
+
+      <label class="field-label">処置区分</label>
+      <div class="pill-group">
+        <div class="pill on" data-val="社内不良(KP)" onclick="selectShochi(this)">社内不良(KP)</div>
+        <div class="pill" data-val="差し戻し" onclick="selectShochi(this)">差し戻し</div>
+      </div>
+
+      <label class="field-label">加工情報</label>
+      <div class="grid2">
+        <input type="text" id="f-kishu" placeholder="機種名">
+        <input type="text" id="f-setsubi" placeholder="設備№">
+      </div>
+      <div class="grid2" style="margin-top:8px">
+        <input type="text" id="f-kakosha" placeholder="加工者">
+        <input type="number" id="f-suryo" placeholder="数量">
+      </div>
+      <div class="grid2" style="margin-top:8px">
+        <input type="number" id="f-ryohin" placeholder="良品数">
+        <input type="text" id="f-zaishitsu" placeholder="材質">
+      </div>
+
+      <label class="field-label">不良項目</label>
+      <div class="item-row">
+        <select id="item-select"></select>
+        <input type="number" id="item-qty" placeholder="数量" min="1">
+        <button type="button" onclick="addItem()">追加</button>
+      </div>
+      <div class="chips" id="item-chips"></div>
+
+      <label>備考</label>
+      <textarea id="f-biko" placeholder="任意"></textarea>
+
+      <button class="primary-btn" onclick="submitForm()">送信する</button>
+    </div>
+
+    <!-- ③ 完了画面 -->
+    <div id="screen-done" class="screen done">
+      <div class="done-icon">✓</div>
+      <h2>入力内容を受け付けました(デモ)</h2>
+      <p class="hint2">送信APIはまだ接続されていません。ブラウザのコンソールに送信予定の内容を出力しています。</p>
+      <button class="secondary-btn" onclick="goToScan()">最初からやり直す</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   西軽精機アプリ｜品質不具合報告 (Phase 1)
+   現時点ではフロントエンドのみ。GAS APIが未実装のため、
+   QR→得意先名/品番の検索・送信処理はダミー(モック)になっている。
+   実装済みのGAS Web Appができたら fetchLookup / fetchSubmit を差し替える。
+   ========================================================================= */
+
+// 不良項目マスタ(SetupSpreadsheet.gsのDEFECT_ITEMSと同じ29項目)
+const DEFECT_ITEMS = [
+  '外径大','外径小','内径大','内径小','長さ不良','2次加工部寸法不良','ネジ不良','穴ズレ','芯ズレ・振れ大','テーパ不良','面取りの不良','挽目不良(面粗度)','その他の寸法不良',
+  '圧痕','打痕','溶着','段差','外径かじり傷','バリ','曲がり','変形','修正不良','その他の外観不良',
+  '材料違い','人為的なミス','未加工','該当項目以外の不良'
+];
+
+let shochiKubun = '社内不良(KP)';
+let items = []; // {name, qty}
+let stream = null;
+let scanning = false;
+
+function init() {
+  const sel = document.getElementById('item-select');
+  DEFECT_ITEMS.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  startCamera();
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('#screen-' + name + ', #screen-' + name + '-header, #screen-' + name + '-body')
+    .forEach(el => el.classList.add('active'));
+}
+
+function goToScan() {
+  showScreen('scan');
+  startCamera();
+}
+
+async function startCamera() {
+  const status = document.getElementById('cam-status');
+  status.textContent = '';
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    status.textContent = 'このブラウザはカメラ読み取りに対応していません。下の「手入力」をお使いください。';
+    return;
+  }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const video = document.getElementById('qr-video');
+    video.srcObject = stream;
+    await video.play();
+    scanning = true;
+    requestAnimationFrame(scanLoop);
+  } catch (e) {
+    status.textContent = 'カメラを起動できませんでした(' + e.message + ')。下の「手入力」をお使いください。';
+  }
+}
+
+function stopCamera() {
+  scanning = false;
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+}
+
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+function scanLoop() {
+  if (!scanning) return;
+  const video = document.getElementById('qr-video');
+  if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+    if (code && code.data) {
+      onQrDetected(code.data);
+      return;
+    }
+  }
+  requestAnimationFrame(scanLoop);
+}
+
+function onQrDetected(text) {
+  stopCamera();
+  document.getElementById('scan-hint').textContent = '読み取りました。検索中...';
+  lookupByManufacturingNumber(text.trim()).then(result => {
+    fillFormFromLookup(text.trim(), result);
+    showScreen('form');
+  });
+}
+
+function openManualEntry() {
+  const mfgNo = prompt('作業票に印字された製造番号を入力してください(例: H260300016)');
+  if (!mfgNo) return;
+  lookupByManufacturingNumber(mfgNo.trim()).then(result => {
+    fillFormFromLookup(mfgNo.trim(), result);
+    stopCamera();
+    showScreen('form');
+  });
+}
+
+/**
+ * 製造番号から得意先名・品番(図番)を検索する。
+ * TODO: GAS Web Appの doGet?mode=lookup&mfgNo=... に差し替える(「進捗状況照会」シートを検索する想定)。
+ * 今はモックデータを返すだけ。
+ */
+function lookupByManufacturingNumber(mfgNo) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve({
+        customer: '協和精工第一',
+        drawing: 'C9050-177'
+      });
+    }, 500);
+  });
+}
+
+function fillFormFromLookup(mfgNo, result) {
+  document.getElementById('f-mfgno').textContent = mfgNo;
+  document.getElementById('f-customer').textContent = result.customer || '(該当なし)';
+  document.getElementById('f-drawing').textContent = result.drawing || '(該当なし)';
+  items = [];
+  renderChips();
+}
+
+function selectShochi(el) {
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
+  el.classList.add('on');
+  shochiKubun = el.dataset.val;
+}
+
+function addItem() {
+  const sel = document.getElementById('item-select');
+  const qtyInput = document.getElementById('item-qty');
+  const qty = parseInt(qtyInput.value, 10);
+  if (!sel.value || !qty || qty < 1) {
+    showToast('不良項目と数量を選んでください');
+    return;
+  }
+  items.push({ name: sel.value, qty });
+  qtyInput.value = '';
+  renderChips();
+}
+
+function removeItem(index) {
+  items.splice(index, 1);
+  renderChips();
+}
+
+function renderChips() {
+  const wrap = document.getElementById('item-chips');
+  wrap.innerHTML = '';
+  items.forEach((item, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = item.name + ' × ' + item.qty + ' ';
+    const btn = document.createElement('button');
+    btn.textContent = '×';
+    btn.onclick = () => removeItem(i);
+    chip.appendChild(btn);
+    wrap.appendChild(chip);
+  });
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+/**
+ * TODO: GAS Web Appの doPost (action=submit) に差し替える。
+ * 今はコンソール出力とデモ完了画面表示のみ。
+ */
+function submitForm() {
+  if (items.length === 0) {
+    showToast('不良項目を1件以上追加してください');
+    return;
+  }
+  const payload = {
+    mfgNo: document.getElementById('f-mfgno').textContent,
+    customer: document.getElementById('f-customer').textContent,
+    drawing: document.getElementById('f-drawing').textContent,
+    shochiKubun,
+    kishu: document.getElementById('f-kishu').value,
+    setsubi: document.getElementById('f-setsubi').value,
+    kakosha: document.getElementById('f-kakosha').value,
+    suryo: document.getElementById('f-suryo').value,
+    ryohin: document.getElementById('f-ryohin').value,
+    zaishitsu: document.getElementById('f-zaishitsu').value,
+    items,
+    biko: document.getElementById('f-biko').value
+  };
+  console.log('[品質不具合報告] 送信予定データ(デモ・未接続):', payload);
+  fetchSubmit(payload).then(() => {
+    showScreen('done');
+  });
+}
+
+function fetchSubmit(payload) {
+  // TODO: 実際のGAS Web Appエンドポイントへ fetch(POST) する
+  return Promise.resolve();
+}
+
+init();
+</script>
+</body>
+</html>
