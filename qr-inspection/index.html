@@ -47,6 +47,25 @@
   }
   .pill.selected { background: var(--pill-bg); border-color: var(--navy); color: var(--navy); font-weight: 700; }
 
+  .fblocks { display: flex; flex-direction: column; gap: 10px; }
+  .fblock {
+    display: flex; align-items: center; justify-content: center; gap: 14px; width: 100%; padding: 18px;
+    border: none; border-radius: 14px; cursor: pointer; font-family: inherit;
+    transition: filter .1s, transform .1s;
+  }
+  .fblock:active { filter: brightness(.92); transform: scale(.985); }
+  .fblock .ico {
+    width: 42px; height: 42px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,.18);
+  }
+  .fblock .ico svg { width: 22px; height: 22px; fill: none; stroke: #fff; stroke-width: 2; }
+  .fblock .body { text-align: center; }
+  .fblock .body .title { font-size: 17px; font-weight: 700; color: #fff; }
+  .fblock .body .sub { font-size: 12px; margin-top: 2px; color: #fff; opacity: .85; }
+  .fblock.navy { background: var(--navy); }
+  .fblock.terracotta { background: #B5541D; }
+  @media (prefers-reduced-motion: reduce) { .fblock { transition: none; } }
+
   #funcView, #staffView, #scanView { display: none; }
   #funcView.active, #staffView.active, #scanView.active { display: block; }
 
@@ -92,8 +111,16 @@
 
       <div id="funcView" class="active">
         <p class="hint">行う作業を選んでください。</p>
-        <button class="btn primary-btn" onclick="selectFunction('assign')">検査担当割付</button>
-        <button class="btn primary-btn" onclick="selectFunction('inspectionHold')">検査開始前保留</button>
+        <div class="fblocks">
+          <button class="fblock navy" onclick="selectFunction('assign')">
+            <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-4 4-6 7-6s5.8 2 7 6"/></svg></div>
+            <div class="body"><div class="title">検査担当割付</div><div class="sub">担当者を選んで割付を記録</div></div>
+          </button>
+          <button class="fblock terracotta" onclick="selectFunction('inspectionHold')">
+            <div class="ico"><svg viewBox="0 0 24 24"><rect x="7" y="5" width="3" height="14" rx="1"/><rect x="14" y="5" width="3" height="14" rx="1"/></svg></div>
+            <div class="body"><div class="title">検査開始前保留</div><div class="sub">検査開始前の保留を登録</div></div>
+          </button>
+        </div>
       </div>
 
       <div id="staffView">
