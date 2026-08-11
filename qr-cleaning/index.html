@@ -90,12 +90,12 @@
   #status { min-height: 22px; text-align: center; font-size: 13.5px; color: var(--gray); margin-bottom: 4px; }
 
   .toast {
-    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
-    background: var(--navy); color: #fff; padding: 18px 26px; border-radius: 14px;
-    box-shadow: 0 6px 20px rgba(0,0,0,.2); font-size: 17px; text-align: center; max-width: 92%;
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(.95);
+    background: var(--navy); color: #fff; padding: 20px 28px; border-radius: 16px;
+    box-shadow: 0 10px 34px rgba(0,0,0,.28); font-size: 17px; text-align: center; max-width: 85%;
     opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 10;
   }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   .toast .customer { font-weight: 700; font-size: 20px; }
 </style>
 </head>

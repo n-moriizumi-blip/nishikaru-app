@@ -102,11 +102,11 @@
   .secondary-btn { width: 100%; margin-top: 10px; padding: 11px; font-size: 14px; background: #fff; color: #1F3A52; border: 1px solid #C7CDD3; border-radius: 12px; cursor: pointer; }
 
   .toast {
-    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
-    background: #1F3A52; color: #fff; padding: 16px 24px; border-radius: 12px; font-size: 16px;
-    box-shadow: 0 6px 20px rgba(0,0,0,.2); opacity: 0; pointer-events: none; transition: opacity .25s ease; max-width: 90vw; text-align: center;
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(.95);
+    background: #1F3A52; color: #fff; padding: 20px 28px; border-radius: 16px; font-size: 17px;
+    box-shadow: 0 10px 34px rgba(0,0,0,.28); opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; max-width: 85vw; text-align: center;
   }
-  .toast.show { opacity: 1; }
+  .toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 
   .done-icon { width: 56px; height: 56px; border-radius: 50%; background: #E4EAF0; color: #1F3A52; font-size: 28px; display: flex; align-items: center; justify-content: center; margin: 8px auto 14px; }
   .done h2 { text-align: center; }
