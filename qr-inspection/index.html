@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>検査QR受付 | 西軽精機アプリ</title>
+<script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
+<style>
+  :root {
+    --navy: #1F3A52;
+    --amber: #F2A900;
+    --bg: #E9ECEF;
+    --text: #1D2226;
+    --border: #C7CDD3;
+    --gray: #5C6670;
+    --gray-light: #8A93A0;
+    --pill-bg: #E4EAF0;
+    --viewfinder-bg: #0F1D28;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+    font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+    display: flex; align-items: flex-start; justify-content: center; padding: 20px 14px;
+  }
+  .card {
+    width: 100%; max-width: 480px; background: #fff; border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06); overflow: hidden;
+  }
+  .card-header { background: var(--navy); padding: 18px 24px 16px; color: #fff; }
+  .brand { font-size: 11px; letter-spacing: .08em; color: var(--amber); font-weight: 700; }
+  .card-header h1 { margin: 4px 0 0; font-size: 19px; font-weight: 700; }
+  .card-body { padding: 22px 24px 26px; }
+
+  .btn { width: 100%; padding: 13px; border-radius: 12px; border: none; font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: inherit; }
+  .primary-btn { background: var(--amber); color: var(--text); }
+  .secondary-btn { background: #fff; border: 1px solid var(--border); color: var(--gray); padding: 11px; }
+  .btn + .btn { margin-top: 10px; }
+  p.hint { margin: 0 0 18px; font-size: 13.5px; color: var(--gray); }
+
+  .pill-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .pill {
+    flex: 1 1 calc(50% - 8px); min-width: 120px; padding: 12px 10px; text-align: center;
+    background: #fff; border: 1px solid var(--border); border-radius: 12px; color: var(--gray);
+    font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .pill.selected { background: var(--pill-bg); border-color: var(--navy); color: var(--navy); font-weight: 700; }
+
+  #funcView, #staffView, #scanView { display: none; }
+  #funcView.active, #staffView.active, #scanView.active { display: block; }
+
+  .mode-chip {
+    display: inline-block; background: #FDECC8; color: #6B4C00; border-radius: 20px;
+    padding: 6px 14px; font-size: 13px; font-weight: 700; margin-bottom: 14px;
+  }
+  .viewfinder {
+    position: relative; width: 100%; aspect-ratio: 1 / 1; max-height: 340px;
+    background: var(--viewfinder-bg); border-radius: 14px; overflow: hidden; margin-bottom: 16px;
+  }
+  .viewfinder video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .corner { position: absolute; width: 30px; height: 30px; border: 3px solid var(--amber); }
+  .corner.tl { top: 14px; left: 14px; border-right: none; border-bottom: none; }
+  .corner.tr { top: 14px; right: 14px; border-left: none; border-bottom: none; }
+  .corner.bl { bottom: 14px; left: 14px; border-right: none; border-top: none; }
+  .corner.br { bottom: 14px; right: 14px; border-left: none; border-top: none; }
+  .scanline {
+    position: absolute; left: 14px; right: 14px; height: 2px; background: var(--amber);
+    box-shadow: 0 0 8px var(--amber); animation: scan 2.4s ease-in-out infinite;
+  }
+  @keyframes scan { 0%,100% { top: 14px; } 50% { top: calc(100% - 16px); } }
+
+  #status { min-height: 22px; text-align: center; font-size: 13.5px; color: var(--gray); margin-bottom: 4px; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+    background: var(--navy); color: #fff; padding: 14px 20px; border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.2); font-size: 14px; text-align: center; max-width: 90%;
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 10;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast .customer { font-weight: 700; font-size: 15px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <div class="brand">西軽精機アプリ</div>
+      <h1>検査QR受付</h1>
+    </div>
+    <div class="card-body">
+
+      <div id="funcView" class="active">
+        <p class="hint">行う作業を選んでください。</p>
+        <button class="btn primary-btn" onclick="selectFunction('assign')">検査担当割付</button>
+        <button class="btn primary-btn" onclick="selectFunction('inspectionHold')">検査開始前保留</button>
+      </div>
+
+      <div id="staffView">
+        <p class="hint">担当者を選んでください。</p>
+        <div class="pill-group" id="staffList"></div>
+        <button class="btn secondary-btn" onclick="backToFunc()">戻る</button>
+      </div>
+
+      <div id="scanView">
+        <span class="mode-chip" id="modeChip"></span>
+        <div class="viewfinder">
+          <video id="preview" playsinline muted></video>
+          <div class="corner tl"></div><div class="corner tr"></div>
+          <div class="corner bl"></div><div class="corner br"></div>
+          <div class="scanline"></div>
+        </div>
+        <div id="status">QRコードをかざしてください</div>
+        <button class="btn secondary-btn" onclick="backFromScan()">戻る</button>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxYAyplKTiV3L0XAiQDoQyf0jbp1UaIXUU_DxJeYKOQBBPPpnS6CjOyqFHeGwCjZUYt/exec";
+    const video = document.getElementById('preview');
+    const statusEl = document.getElementById('status');
+    const funcView = document.getElementById('funcView');
+    const staffView = document.getElementById('staffView');
+    const scanView = document.getElementById('scanView');
+    const staffListEl = document.getElementById('staffList');
+    const modeChip = document.getElementById('modeChip');
+    const toast = document.getElementById('toast');
+
+    let mediaStream = null;
+    let scanning = false;
+    let currentFunc = '';   // 'assign' | 'inspectionHold'
+    let selectedStaff = localStorage.getItem('inspectionStaff') || '';
+
+    function showView(view) {
+      [funcView, staffView, scanView].forEach(v => v.classList.remove('active'));
+      view.classList.add('active');
+    }
+
+    async function selectFunction(func) {
+      currentFunc = func;
+      if (func === 'assign') {
+        if (selectedStaff) { startScanFor('assign', '担当: ' + selectedStaff); return; }
+        await loadStaffList();
+        showView(staffView);
+      } else {
+        startScanFor('inspectionHold', '検査開始前保留 登録');
+      }
+    }
+
+    function backToFunc() { showView(funcView); }
+
+    async function loadStaffList() {
+      staffListEl.innerHTML = '<p class="hint">読み込み中...</p>';
+      try {
+        const res = await fetch(GAS_URL + '?mode=staffList');
+        const data = await res.json();
+        staffListEl.innerHTML = '';
+        (data.staff || []).forEach(name => {
+          const pill = document.createElement('button');
+          pill.type = 'button';
+          pill.className = 'pill';
+          pill.textContent = name;
+          pill.onclick = () => {
+            selectedStaff = name;
+            localStorage.setItem('inspectionStaff', name);
+            startScanFor('assign', '担当: ' + name);
+          };
+          staffListEl.appendChild(pill);
+        });
+      } catch (e) {
+        staffListEl.innerHTML = '<p class="hint">担当者一覧を取得できませんでした</p>';
+      }
+    }
+
+    async function ensureCamera() {
+      if (mediaStream) return;
+      mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 } } });
+      video.srcObject = mediaStream;
+      await video.play();
+    }
+
+    async function startScanFor(func, chipLabel) {
+      currentFunc = func;
+      modeChip.textContent = chipLabel;
+      showView(scanView);
+      statusEl.textContent = "QRコードをかざしてください";
+      try {
+        await ensureCamera();
+        startScanLoop();
+      } catch (e) {
+        statusEl.textContent = "カメラを起動できませんでした";
+      }
+    }
+
+    function backFromScan() {
+      scanning = false;
+      if (currentFunc === 'assign') {
+        selectedStaff = '';
+        localStorage.removeItem('inspectionStaff');
+        showView(funcView);
+      } else {
+        showView(funcView);
+      }
+    }
+
+    function startScanLoop() { scanning = true; requestAnimationFrame(tick); }
+
+    function playBeep() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
+        oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.1);
+      } catch (e) {}
+    }
+
+    function tick() {
+      if (!scanning) return;
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        const canvas = document.createElement("canvas");
+        canvas.height = video.videoHeight; canvas.width = video.videoWidth;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code) {
+          playBeep();
+          scanning = false;
+          sendData(code.data);
+          return;
+        }
+      }
+      requestAnimationFrame(tick);
+    }
+
+    function showToast(html) {
+      toast.innerHTML = html;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1600);
+    }
+
+    async function sendData(qrData) {
+      statusEl.textContent = "送信中...";
+      try {
+        const payload = { action: currentFunc, mfgNo: qrData };
+        if (currentFunc === 'assign') payload.staff = selectedStaff;
+        const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
+        const info = await res.json();
+        if (info.found) {
+          showToast('<div class="customer">' + escapeHtml(info.customer) + ' 様</div>品番 ' + escapeHtml(info.drawing) + ' を受け付けました');
+        } else {
+          showToast('製番 ' + escapeHtml(info.mfgNo || qrData) + ' を受け付けました');
+        }
+      } catch (e) {
+        showToast('❌ 送信エラー: もう一度お試しください');
+      } finally {
+        statusEl.textContent = "QRコードをかざしてください";
+        setTimeout(startScanLoop, 1200);
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+  </script>
+</body>
+</html>
