@@ -1,0 +1,13 @@
+{
+  "name": "洗浄工程",
+  "short_name": "洗浄工程",
+  "description": "洗浄待機・洗浄完了のQR受付",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#E9ECEF",
+  "theme_color": "#1F3A52",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
