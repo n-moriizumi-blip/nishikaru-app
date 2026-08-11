@@ -193,14 +193,22 @@
       </div>
       <input type="text" id="f-zaishitsu" placeholder="材質" style="margin-top:8px">
       <p class="hint2" style="text-align:left;margin-top:6px">良品数は加工数から不良数を自動で差し引くため、入力は不要です。</p>
+      <div id="tanka-field" style="margin-top:8px">
+        <input type="number" id="f-tanka" placeholder="単価">
+      </div>
 
       <label class="field-label">不良項目</label>
       <div class="item-row">
         <select id="item-select"></select>
         <input type="number" id="item-qty" placeholder="数量" min="1">
-        <button type="button" onclick="addItem()">追加</button>
       </div>
+      <input type="text" id="item-detail" placeholder="詳細(例: φ10.05など実測値・状況)" style="margin-top:8px">
+      <button type="button" class="secondary-btn" onclick="addItem()" style="margin-top:8px">＋ この不良項目を追加</button>
       <div class="chips" id="item-chips"></div>
+
+      <label class="field-label">キズ原因(任意)</label>
+      <p class="hint2" style="text-align:left;margin-bottom:6px">圧痕・打痕などキズ系の不良の原因分析に使います。該当しなければ選ばなくてよいです。</p>
+      <select id="f-kizugenin"><option value="">選択しない</option></select>
 
       <label>備考</label>
       <textarea id="f-biko" placeholder="任意"></textarea>
@@ -242,8 +250,20 @@ const DEFECT_ITEMS = [
   '材料違い','人為的なミス','未加工','該当項目以外の不良'
 ];
 
+// キズ原因マスタ(SetupSpreadsheet.gsのKP_CAUSE_ITEMSと同じ18項目、任意項目)
+const KIZU_GENIN_ITEMS = [
+  '洗浄時','ざるに入れてエアー吹き','製品の移し替え時','箱の中での製品同士の打痕','落下',
+  'チャック内の切粉による圧痕','切粉が絡んでのチャック','ワーク掴み方',
+  '回収時のワークの落ち方','自動回収機のワークがいっぱい','NC回収時の落下','NC回収時の打痕',
+  '突っ切り落とし加工時',
+  '材料のキズ','材料の面取り時の圧痕',
+  '切粉がワークに絡まってのキズ',
+  'ガイドブッシュのキズ(外径挽かない)',
+  'その他'
+];
+
 let shochiKubun = '社内不良(KP)';
-let items = []; // {name, qty}
+let items = []; // {name, qty, detail}
 let stream = null;
 let scanning = false;
 let currentUserEmail = null;
@@ -256,6 +276,13 @@ function init() {
     opt.value = name;
     opt.textContent = name;
     sel.appendChild(opt);
+  });
+  const kizuSel = document.getElementById('f-kizugenin');
+  KIZU_GENIN_ITEMS.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    kizuSel.appendChild(opt);
   });
   loadMasters();
   initGoogleSignIn();
@@ -469,18 +496,22 @@ function selectShochi(el) {
   document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
   el.classList.add('on');
   shochiKubun = el.dataset.val;
+  // 単価は社内不良(KP)のときだけ入力する(差し戻しは金額を集計しないため)
+  document.getElementById('tanka-field').style.display = (shochiKubun === '社内不良(KP)') ? '' : 'none';
 }
 
 function addItem() {
   const sel = document.getElementById('item-select');
   const qtyInput = document.getElementById('item-qty');
+  const detailInput = document.getElementById('item-detail');
   const qty = parseInt(qtyInput.value, 10);
   if (!sel.value || !qty || qty < 1) {
     showToast('不良項目と数量を選んでください');
     return;
   }
-  items.push({ name: sel.value, qty });
+  items.push({ name: sel.value, qty, detail: detailInput.value.trim() });
   qtyInput.value = '';
+  detailInput.value = '';
   renderChips();
 }
 
@@ -495,7 +526,8 @@ function renderChips() {
   items.forEach((item, i) => {
     const chip = document.createElement('span');
     chip.className = 'chip';
-    chip.innerHTML = item.name + ' × ' + item.qty + ' ';
+    const label = item.name + ' × ' + item.qty + (item.detail ? '(' + item.detail + ')' : '') + ' ';
+    chip.appendChild(document.createTextNode(label));
     const btn = document.createElement('button');
     btn.textContent = '×';
     btn.onclick = () => removeItem(i);
@@ -528,7 +560,9 @@ function submitForm() {
     kakosha: document.getElementById('f-kakosha').value,
     suryo: document.getElementById('f-suryo').value, // 加工数(良品数はGAS側でこの値から自動計算)
     zaishitsu: document.getElementById('f-zaishitsu').value,
-    items,
+    tanka: document.getElementById('f-tanka').value, // 単価(社内不良(KP)のときのみ意味を持つ)
+    items, // [{name, qty, detail}]
+    kizugenin: document.getElementById('f-kizugenin').value, // キズ原因(任意)
     biko: document.getElementById('f-biko').value
   };
   console.log('[品質不具合報告] 送信データ:', payload);
