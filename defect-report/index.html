@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="../manifest.json">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#1F3A52">
+<title>西軽精機アプリ｜品質不具合報告</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+    background: #E9ECEF;
+    margin: 0;
+    padding: 24px 16px 60px;
+    color: #1D2226;
+  }
+  .card {
+    max-width: 480px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+  }
+  .card-header { background: #1F3A52; padding: 18px 24px 16px; text-align: center; }
+  .card-header .brand { font-size: 11px; font-weight: 700; color: #F2A900; letter-spacing: .08em; margin: 0 0 4px; }
+  .card-header .back-link { display: inline-block; font-size: 13px; color: rgba(255,255,255,.75); cursor: pointer; margin: 0 0 6px; background: none; border: none; padding: 0; }
+  .card-header h1 { font-size: 19px; margin: 0 0 4px; color: #fff; }
+  .card-header .sub { font-size: 12.5px; color: rgba(255,255,255,.78); margin: 0; }
+  .card-body { padding: 20px 24px 24px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* --- QRスキャン画面 --- */
+  .viewfinder {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    background: #0F1D28;
+    overflow: hidden;
+    margin: 0 0 16px;
+  }
+  .viewfinder video { width: 100%; height: 100%; object-fit: cover; }
+  .corner { position: absolute; width: 26px; height: 26px; border: 3px solid #F2A900; }
+  .corner.tl { top: 12px; left: 12px; border-right: none; border-bottom: none; border-radius: 6px 0 0 0; }
+  .corner.tr { top: 12px; right: 12px; border-left: none; border-bottom: none; border-radius: 0 6px 0 0; }
+  .corner.bl { bottom: 12px; left: 12px; border-right: none; border-top: none; border-radius: 0 0 0 6px; }
+  .corner.br { bottom: 12px; right: 12px; border-left: none; border-top: none; border-radius: 0 0 6px 0; }
+  .scanline { position: absolute; left: 14px; right: 14px; height: 2px; background: #F2A900; top: 46%; box-shadow: 0 0 8px 1px rgba(242,169,0,.7); }
+  @media (prefers-reduced-motion: no-preference) {
+    .scanline { animation: scananim 2.4s ease-in-out infinite; }
+  }
+  @keyframes scananim { 0%,100% { top: 16%; } 50% { top: 80%; } }
+  .cam-status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px; color: #cbd5db; font-size: 13px; line-height: 1.6; }
+
+  .hint { font-size: 13.5px; font-weight: 600; margin: 0 0 4px; text-align: center; }
+  .hint2 { font-size: 12px; color: #5C6670; margin: 0; text-align: center; line-height: 1.5; }
+
+  label { display: block; font-size: 14px; font-weight: 600; margin: 18px 0 6px; }
+  label.field-label { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; color: #1F3A52; margin: 20px 0 8px; }
+  label.field-label::before { content: "⬡"; color: #F2A900; font-size: 12px; }
+
+  input[type="text"], input[type="number"], select, textarea {
+    width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid #C7CDD3; border-radius: 10px; background: #fff; font-family: inherit; color: #1D2226;
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  /* プレースホルダー文字の色をグレーに統一(ブラウザ既定のままだと薄すぎたり濃すぎたりまちまちになるため) */
+  input::placeholder, textarea::placeholder { color: #8A93A0; opacity: 1; }
+  /* select は本物のplaceholder属性を持てないため、「未選択」の状態(先頭の空optionのまま)を
+     required + :invalid で判定し、同じグレーで見せる。値を選ぶと自動的に通常の文字色に戻る。 */
+  select:required:invalid { color: #8A93A0; }
+  select option { color: #1D2226; }
+
+  .autofill-card { background: #F7F9FB; border: 1px solid #DCE3E9; border-radius: 12px; padding: 12px 14px; margin-bottom: 4px; }
+  .autofill-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: #7A5A00; background: #FFF1CC; padding: 3px 8px; border-radius: 20px; margin-bottom: 8px; }
+  .kv { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-top: 1px solid #E3E8EC; }
+  .kv:first-of-type { border-top: none; }
+  .kv .k { font-size: 11.5px; color: #5C6670; }
+  .kv .v { font-size: 14px; font-weight: 700; }
+
+  .pill-group { display: flex; gap: 8px; }
+  .pill { flex: 1; text-align: center; padding: 10px 6px; border-radius: 10px; border: 1px solid #C7CDD3; font-size: 13px; font-weight: 600; background: #fff; color: #5C6670; cursor: pointer; user-select: none; }
+  .pill.on { background: #E4EAF0; border-color: #1F3A52; color: #1F3A52; font-weight: 700; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .item-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .item-row select { flex: 2; }
+  .item-row input { flex: 1; }
+  .item-row button { flex: 0 0 auto; padding: 10px 12px; border-radius: 10px; border: 1px solid #C7CDD3; background: #fff; font-size: 13px; font-weight: 700; color: #1F3A52; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+  .chip { display: flex; align-items: center; gap: 6px; background: #FDECC8; color: #6B4C00; font-size: 12.5px; font-weight: 600; padding: 6px 8px 6px 12px; border-radius: 20px; }
+  .chip button { width: 17px; height: 17px; border-radius: 50%; background: rgba(0,0,0,.12); border: none; display: flex; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; color: inherit; }
+
+  .primary-btn { width: 100%; margin-top: 24px; padding: 13px; font-size: 16px; font-weight: 700; color: #1D2226; background: #F2A900; border: none; border-radius: 12px; cursor: pointer; }
+  .primary-btn:disabled { background: #D9DDE1; color: #8A93A0; cursor: default; }
+  .secondary-btn { width: 100%; margin-top: 10px; padding: 11px; font-size: 14px; background: #fff; color: #1F3A52; border: 1px solid #C7CDD3; border-radius: 12px; cursor: pointer; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: #1F3A52; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 13.5px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.2); opacity: 0; pointer-events: none; transition: opacity .25s ease; max-width: 90vw; text-align: center;
+  }
+  .toast.show { opacity: 1; }
+
+  .done-icon { width: 56px; height: 56px; border-radius: 50%; background: #E4EAF0; color: #1F3A52; font-size: 28px; display: flex; align-items: center; justify-content: center; margin: 8px auto 14px; }
+  .done h2 { text-align: center; }
+  .done .hint2 { margin-bottom: 20px; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="card-header">
+    <p class="brand">西軽精機</p>
+
+    <!-- ⓪ ログイン画面 -->
+    <div id="screen-login-header" class="screen active">
+      <h1>品質不具合報告</h1>
+      <p class="sub">Googleアカウントでログインしてください</p>
+    </div>
+
+    <!-- ① QRスキャン画面 -->
+    <div id="screen-scan" class="screen">
+      <h1>品質不具合報告</h1>
+      <p class="sub">作業票のQRコードを読み取ってください</p>
+    </div>
+
+    <!-- ② 入力フォーム画面 -->
+    <div id="screen-form-header" class="screen">
+      <button class="back-link" onclick="goToScan()">← QR読み取りに戻る</button>
+      <h1>不良内容の入力</h1>
+      <p class="sub">残りの項目を入力してください</p>
+    </div>
+
+    <!-- ③ 完了画面 -->
+    <div id="screen-done-header" class="screen">
+      <h1>送信内容の確認</h1>
+      <p class="sub">この画面はデモ版です</p>
+    </div>
+  </div>
+
+  <div class="card-body">
+
+    <!-- ⓪ ログイン画面 -->
+    <div id="screen-login" class="screen active">
+      <p class="hint2" style="text-align:center;margin-bottom:16px">品証担当者の記録に使うため、西軽精機のGoogleアカウントでログインしてください。</p>
+      <div id="g_id_signin" style="display:flex;justify-content:center;"></div>
+    </div>
+
+    <!-- ① QRスキャン画面 -->
+    <div id="screen-scan-body" class="screen">
+      <div class="viewfinder">
+        <video id="qr-video" playsinline muted></video>
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+        <div class="scanline"></div>
+        <div id="cam-status" class="cam-status"></div>
+      </div>
+      <p class="hint" id="scan-hint">QRコードを枠内に合わせてください</p>
+      <p class="hint2">作業票に印字された製造番号のQRコードを読み取ります</p>
+      <button class="secondary-btn" onclick="openManualEntry()">QRが読めないときは手入力する</button>
+    </div>
+
+    <!-- ② 入力フォーム画面 -->
+    <div id="screen-form" class="screen">
+      <div class="autofill-card">
+        <span class="autofill-tag">✓ QRから自動入力</span>
+        <div class="kv"><span class="k">製造番号</span><span class="v" id="f-mfgno">—</span></div>
+        <div class="kv"><span class="k">得意先名</span><span class="v" id="f-customer">—</span></div>
+        <div class="kv"><span class="k">品番(図番)</span><span class="v" id="f-drawing">—</span></div>
+      </div>
+
+      <label class="field-label">処置区分</label>
+      <div class="pill-group">
+        <div class="pill on" data-val="社内不良(KP)" onclick="selectShochi(this)">社内不良(KP)</div>
+        <div class="pill" data-val="差し戻し" onclick="selectShochi(this)">差し戻し</div>
+      </div>
+
+      <label class="field-label">加工情報</label>
+      <div class="grid2">
+        <select id="f-kishu" required><option value="">機種名を選択</option></select>
+        <input type="text" id="f-setsubi" placeholder="設備№">
+      </div>
+      <div class="grid2" style="margin-top:8px">
+        <select id="f-kakosha" required><option value="">加工者を選択</option></select>
+        <input type="number" id="f-suryo" placeholder="加工数(実際に加工した数)">
+      </div>
+      <input type="text" id="f-zaishitsu" placeholder="材質" style="margin-top:8px">
+      <div id="tanka-field" style="margin-top:8px">
+        <input type="number" id="f-tanka" placeholder="単価">
+      </div>
+
+      <label class="field-label">不良項目</label>
+      <div class="item-row">
+        <select id="item-select"></select>
+        <input type="number" id="item-qty" placeholder="数量" min="1">
+      </div>
+      <input type="text" id="item-detail" placeholder="詳細(例: φ10.05など実測値・状況)" style="margin-top:8px">
+      <a href="javascript:void(0)" onclick="toggleItemWorker2()" style="display:block;font-size:12.5px;color:#1F3A52;margin-top:8px">＋ この項目だけ担当者が違う場合は指定する</a>
+      <div id="item-worker2-field" style="display:none;margin-top:6px">
+        <select id="item-worker2"><option value="">担当者2を選択</option></select>
+      </div>
+      <button type="button" class="secondary-btn" onclick="addItem()" style="margin-top:8px">＋ この不良項目を追加</button>
+      <div class="chips" id="item-chips"></div>
+
+      <div id="kizugenin-field">
+        <label class="field-label">キズ原因(任意)</label>
+        <p class="hint2" style="text-align:left;margin-bottom:6px">圧痕・打痕などキズ系の不良の原因分析に使います。該当しなければ選ばなくてよいです。</p>
+        <select id="f-kizugenin"><option value="">選択しない</option></select>
+      </div>
+
+      <label>備考</label>
+      <textarea id="f-biko" placeholder="任意"></textarea>
+
+      <button class="primary-btn" onclick="submitForm()">送信する</button>
+    </div>
+
+    <!-- ③ 完了画面 -->
+    <div id="screen-done" class="screen done">
+      <div class="done-icon">✓</div>
+      <h2>入力内容を受け付けました(デモ)</h2>
+      <p class="hint2">送信APIはまだ接続されていません。ブラウザのコンソールに送信予定の内容を出力しています。</p>
+      <button class="secondary-btn" onclick="goToScan()">最初からやり直す</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   西軽精機アプリ｜品質不具合報告 (Phase 1)
+   QR検索(mode=lookup)・プルダウン取得(mode=masters)・送信(action=submit)は
+   GAS_URL の WebApi.gs へ実際に接続する。GAS_URL が空文字の間だけモックデータで動作する。
+   ========================================================================= */
+
+// GAS Web AppのデプロイURL。「拡張機能 > Apps Script」→「デプロイ」→「新しいデプロイ」で
+// 発行されたURLをここに貼り付ける(WebApi.gs参照)。空のままだとモックデータで動作する。
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbygThIm2QVUek5ZSvUIuayfY3nUSmktUggkwZtc_Ezzc1GPA8VudiGAg2GKlHS4gfAI/exec';
+
+// Google Identity Services(ログイン)用クライアントID(品質保証課アプリ、Google Cloud Consoleで発行)
+const GOOGLE_CLIENT_ID = '800178947678-qdka8ic7v2c5bbeocgiqd8qqrheafq7e.apps.googleusercontent.com';
+
+// 不良項目マスタ(SetupSpreadsheet.gsのDEFECT_ITEMSと同じ29項目)
+const DEFECT_ITEMS = [
+  '外径大','外径小','内径大','内径小','長さ不良','2次加工部寸法不良','ネジ不良','穴ズレ','芯ズレ・振れ大','テーパ不良','面取りの不良','挽目不良(面粗度)','その他の寸法不良',
+  '圧痕','打痕','溶着','段差','外径かじり傷','バリ','曲がり','変形','修正不良','その他の外観不良',
+  '材料違い','人為的なミス','未加工','該当項目以外の不良'
+];
+
+// キズ原因マスタ(SetupSpreadsheet.gsのKP_CAUSE_ITEMSと同じ18項目、任意項目)
+const KIZU_GENIN_ITEMS = [
+  '洗浄時','ざるに入れてエアー吹き','製品の移し替え時','箱の中での製品同士の打痕','落下',
+  'チャック内の切粉による圧痕','切粉が絡んでのチャック','ワーク掴み方',
+  '回収時のワークの落ち方','自動回収機のワークがいっぱい','NC回収時の落下','NC回収時の打痕',
+  '突っ切り落とし加工時',
+  '材料のキズ','材料の面取り時の圧痕',
+  '切粉がワークに絡まってのキズ',
+  'ガイドブッシュのキズ(外径挽かない)',
+  'その他'
+];
+
+let shochiKubun = '社内不良(KP)';
+let items = []; // {name, qty, detail}
+let stream = null;
+let scanning = false;
+let currentUserEmail = null;
+let idToken = null; // GASへ毎回の送信時に渡し、サーバー側で本人確認する
+
+function init() {
+  const sel = document.getElementById('item-select');
+  DEFECT_ITEMS.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  const kizuSel = document.getElementById('f-kizugenin');
+  KIZU_GENIN_ITEMS.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    kizuSel.appendChild(opt);
+  });
+  loadMasters();
+  initGoogleSignIn();
+}
+
+/**
+ * Google Identity Servicesの初期化。
+ * スクリプトは非同期読み込み(async defer)のため、まだ準備できていなければ少し待って再試行する
+ * (勤怠管理システムのタブレットアプリと同じ待機パターン)。
+ * auto_select+prompt()で、ブラウザに既にログイン中のGoogleアカウントがあれば自動的にログインする
+ * (毎回ボタンを押さなくてよい)。自動ログインできない場合(初回・複数アカウント・シークレットモード等)
+ * に備えて、ボタンも一緒に表示しておく。
+ */
+function initGoogleSignIn() {
+  if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
+    setTimeout(initGoogleSignIn, 300);
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleCredentialResponse,
+    auto_select: true
+  });
+  google.accounts.id.renderButton(document.getElementById('g_id_signin'), {
+    theme: 'outline', size: 'large', text: 'signin_with', locale: 'ja'
+  });
+  google.accounts.id.prompt(); // 自動ログインを試みる(One Tap)
+}
+
+function handleCredentialResponse(response) {
+  idToken = response.credential;
+  const payload = parseJwt(idToken);
+  currentUserEmail = payload.email || null;
+  showScreen('scan');
+  startCamera();
+}
+
+/** JWTのpayload部分をデコードするだけ(表示用。検証は必ずサーバー側のGASで行う) */
+function parseJwt(token) {
+  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  const json = decodeURIComponent(
+    atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+  );
+  return JSON.parse(json);
+}
+
+/**
+ * 機種名(機械名)・加工者名のプルダウン候補を GAS 経由で「組織図マスタ」から取得する。
+ * GAS_URL 未設定の間は簡易的なモック一覧で動作する。
+ */
+function loadMasters() {
+  const apply = data => {
+    fillSelect('f-kishu', data.kishu || [], '機種名を選択');
+    fillSelect('f-kakosha', data.kakosha || [], '加工者を選択');
+    fillSelect('item-worker2', data.kakosha || [], '担当者2を選択'); // 加工者と同じ一覧を流用
+  };
+  if (!GAS_URL) {
+    apply({ kishu: ['A20', 'A32', 'M20', 'M32(モック)'], kakosha: ['内田 正史', '田中 千也(モック)'] });
+    return;
+  }
+  fetch(GAS_URL + '?mode=masters')
+    .then(res => res.json())
+    .then(apply)
+    .catch(err => showToast('担当者一覧の取得に失敗しました: ' + err.message));
+}
+
+function fillSelect(id, values, placeholder) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = '';
+  const ph = document.createElement('option');
+  ph.value = '';
+  ph.textContent = placeholder;
+  sel.appendChild(ph);
+  values.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    sel.appendChild(opt);
+  });
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('#screen-' + name + ', #screen-' + name + '-header, #screen-' + name + '-body')
+    .forEach(el => el.classList.add('active'));
+}
+
+function goToScan() {
+  showScreen('scan');
+  startCamera();
+}
+
+async function startCamera() {
+  const status = document.getElementById('cam-status');
+  status.textContent = '';
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    status.textContent = 'このブラウザはカメラ読み取りに対応していません。下の「手入力」をお使いください。';
+    return;
+  }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const video = document.getElementById('qr-video');
+    video.srcObject = stream;
+    await video.play();
+    scanning = true;
+    requestAnimationFrame(scanLoop);
+  } catch (e) {
+    status.textContent = 'カメラを起動できませんでした(' + e.message + ')。下の「手入力」をお使いください。';
+  }
+}
+
+function stopCamera() {
+  scanning = false;
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+}
+
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+function scanLoop() {
+  if (!scanning) return;
+  const video = document.getElementById('qr-video');
+  if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+    if (code && code.data) {
+      onQrDetected(code.data);
+      return;
+    }
+  }
+  requestAnimationFrame(scanLoop);
+}
+
+/**
+ * 作業票のQRコードは製造番号そのものではなく、I-Pro専用URL
+ * (例: http://192.168.0.131:80//workresult/index/FA01/H260400284)を指しており、
+ * 製造番号はその末尾の区間だけ。URL形式ならそこだけ取り出し、それ以外はそのまま使う。
+ */
+function extractMfgNo(text) {
+  text = (text || '').trim();
+  if (/^https?:\/\//i.test(text)) {
+    const parts = text.split('/').filter(Boolean); // 連続するスラッシュ(空区間)を無視
+    return parts[parts.length - 1] || text;
+  }
+  return text;
+}
+
+function onQrDetected(text) {
+  stopCamera();
+  document.getElementById('scan-hint').textContent = '読み取りました。検索中...';
+  const mfgNo = extractMfgNo(text);
+  lookupByManufacturingNumber(mfgNo).then(result => {
+    fillFormFromLookup(mfgNo, result);
+    showScreen('form');
+  });
+}
+
+function openManualEntry() {
+  const input = prompt('作業票に印字された製造番号を入力してください(例: H260300016)');
+  if (!input) return;
+  const mfgNo = extractMfgNo(input);
+  lookupByManufacturingNumber(mfgNo).then(result => {
+    fillFormFromLookup(mfgNo, result);
+    stopCamera();
+    showScreen('form');
+  });
+}
+
+/**
+ * 製造番号から得意先名・品番(図番)を検索する(GAS Web App の doGet?mode=lookup を呼ぶ)。
+ * GAS_URL が未設定の間はモックデータを返す。
+ */
+function lookupByManufacturingNumber(mfgNo) {
+  if (!GAS_URL) {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve({ found: true, customer: '協和精工第一(モック)', drawing: 'C9050-177' });
+      }, 500);
+    });
+  }
+  return fetch(GAS_URL + '?mode=lookup&mfgNo=' + encodeURIComponent(mfgNo))
+    .then(res => res.json())
+    .then(data => {
+      if (!data.found) {
+        showToast('該当する製造番号が見つかりませんでした');
+        return { customer: '', drawing: '' };
+      }
+      if (data.error) showToast(data.error);
+      return data;
+    })
+    .catch(err => {
+      showToast('検索に失敗しました: ' + err.message);
+      return { customer: '', drawing: '' };
+    });
+}
+
+function fillFormFromLookup(mfgNo, result) {
+  document.getElementById('f-mfgno').textContent = mfgNo;
+  document.getElementById('f-customer').textContent = result.customer || '(該当なし)';
+  document.getElementById('f-drawing').textContent = result.drawing || '(該当なし)';
+  items = [];
+  renderChips();
+}
+
+function selectShochi(el) {
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
+  el.classList.add('on');
+  shochiKubun = el.dataset.val;
+  var isKp = (shochiKubun === '社内不良(KP)');
+  // 単価は社内不良(KP)のときだけ入力する(差し戻しは金額を集計しないため)
+  document.getElementById('tanka-field').style.display = isKp ? '' : 'none';
+  // キズ原因は社内不良(KP)のときだけ入力する(差し戻しでは使わない項目のため)
+  document.getElementById('kizugenin-field').style.display = isKp ? '' : 'none';
+  if (!isKp) document.getElementById('f-kizugenin').value = '';
+}
+
+/** 「＋ この項目だけ担当者が違う場合は指定する」リンクで担当者2欄の表示・非表示を切り替える */
+function toggleItemWorker2() {
+  const field = document.getElementById('item-worker2-field');
+  field.style.display = (field.style.display === 'none') ? '' : 'none';
+}
+
+function addItem() {
+  const sel = document.getElementById('item-select');
+  const qtyInput = document.getElementById('item-qty');
+  const detailInput = document.getElementById('item-detail');
+  const worker2Select = document.getElementById('item-worker2');
+  const qty = parseInt(qtyInput.value, 10);
+  if (!sel.value || !qty || qty < 1) {
+    showToast('不良項目と数量を選んでください');
+    return;
+  }
+  items.push({ name: sel.value, qty, detail: detailInput.value.trim(), worker2: worker2Select.value });
+  qtyInput.value = '';
+  detailInput.value = '';
+  worker2Select.value = '';
+  document.getElementById('item-worker2-field').style.display = 'none';
+  renderChips();
+}
+
+function removeItem(index) {
+  items.splice(index, 1);
+  renderChips();
+}
+
+function renderChips() {
+  const wrap = document.getElementById('item-chips');
+  wrap.innerHTML = '';
+  items.forEach((item, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    const label = item.name + ' × ' + item.qty
+      + (item.detail ? '(' + item.detail + ')' : '')
+      + (item.worker2 ? ' 👤' + item.worker2 : '')
+      + ' ';
+    chip.appendChild(document.createTextNode(label));
+    const btn = document.createElement('button');
+    btn.textContent = '×';
+    btn.onclick = () => removeItem(i);
+    chip.appendChild(btn);
+    wrap.appendChild(chip);
+  });
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function submitForm() {
+  if (items.length === 0) {
+    showToast('不良項目を1件以上追加してください');
+    return;
+  }
+  const payload = {
+    action: 'submit',
+    idToken, // GAS側がこのIDトークンをGoogleに照会して本人確認し、品証担当者(C列)に記録する
+    mfgNo: document.getElementById('f-mfgno').textContent,
+    customer: document.getElementById('f-customer').textContent,
+    drawing: document.getElementById('f-drawing').textContent,
+    shochiKubun,
+    kishu: document.getElementById('f-kishu').value,
+    setsubi: document.getElementById('f-setsubi').value,
+    kakosha: document.getElementById('f-kakosha').value,
+    suryo: document.getElementById('f-suryo').value, // 加工数(良品数はGAS側でこの値から自動計算)
+    zaishitsu: document.getElementById('f-zaishitsu').value,
+    tanka: document.getElementById('f-tanka').value, // 単価(社内不良(KP)のときのみ意味を持つ)
+    items, // [{name, qty, detail}]
+    kizugenin: document.getElementById('f-kizugenin').value, // キズ原因(任意)
+    biko: document.getElementById('f-biko').value
+  };
+  console.log('[品質不具合報告] 送信データ:', payload);
+  fetchSubmit(payload).then(result => {
+    if (result.ok === false) {
+      showToast('送信に失敗しました: ' + (result.error || ''));
+      return;
+    }
+    showScreen('done');
+  });
+}
+
+/**
+ * GAS Web App の doPost(action=submit) を呼ぶ。GAS_URL が未設定の間はモック応答を返す。
+ * Content-Type は text/plain にして、ブラウザのCORSプリフライトを避けている
+ * (GAS Web Appはプリフライト(OPTIONS)に対応していないため。勤怠申請アプリと同じ方式)。
+ */
+function fetchSubmit(payload) {
+  if (!GAS_URL) {
+    return new Promise(resolve => setTimeout(() => resolve({ ok: true, mock: true }), 400));
+  }
+  return fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  })
+    .then(res => res.json())
+    .catch(err => ({ ok: false, error: err.message }));
+}
+
+init();
+</script>
+</body>
+</html>

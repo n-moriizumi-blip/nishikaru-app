@@ -1,18 +1,19 @@
 # nishikaru-kensa-app
 
-西軽精機の統合Webアプリ(GitHub Pages + GAS API構成)。既存の[勤怠申請アプリ](https://github.com/n-moriizumi-blip/nishikaru-shuusei-app)と同じ構成を踏襲している。
+西軽精機の統合Webアプリ「品質保証課アプリ」(GitHub Pages + GAS API構成)。既存の[勤怠申請アプリ](https://github.com/n-moriizumi-blip/nishikaru-sinsei-app)と同じ構成を踏襲している。
 
-## 現状(2026-08-10)
+## 構成(2026-08-11)
 
-Phase 1として「品質不具合報告」(検査で見つかった社内不良・差し戻し品の記録)を実装中。
+ルートの `index.html` はアプリ選択画面。ここから3つの機能へ分岐する。
 
-- `index.html`: QRスキャン→自動入力フォームの画面。カメラでのQR読み取り(jsQR)は実装済み。
-- 対応するGAS Web App(`doGet`/`doPost`)のコードは `検査不具合報告\品質不具合管理システム\WebApi.gs`(ローカル)に作成済みだが、**まだGASエディタへの貼り付け・デプロイが済んでいない**。デプロイ後、発行されたURLを `index.html` 内の `GAS_URL` 定数に設定するまでは、QR検索・送信ともにモック(ダミーデータ・コンソール出力)で動作する。
-- 対応するスプレッドシート・GAS構築スクリプトは `検査不具合報告\品質不具合管理システム\`(ローカル)を参照。
+- `defect-report/`: 品質不具合報告(社内不良・差し戻し品のクイック入力)。バックエンドは`検査不具合報告\品質不具合管理システム\WebApi.gs`(ローカル)、デプロイ済み。
+- `qr-cleaning/`: 洗浄工程(洗浄待機・洗浄完了のQR受付)。単独アプリ。
+- `qr-inspection/`: 検査担当割付・検査開始前保留のQR受付。`?func=assign` または `?func=inspectionHold` を付けて開くと、アプリ内の選択画面を飛ばして直接その機能へ進む(ルートの選択画面はこの形でリンクしている)。
+
+`qr-cleaning`・`qr-inspection`のバックエンドは、`進捗状況照会`スプレッドシートに紐づくGAS(`コード.gs`、ローカルは`進捗状況照会\コード.gs`)。
+
+アイコン(`icon-192.png`・`icon-512.png`)は`勤怠管理システム\資料\品質保証課アプリ.png`(ローカル)を透過処理して書き出したもの。
 
 ## 今後の予定
 
-- `WebApi.gs` をGASエディタへ貼り付けてWebアプリとしてデプロイし、`index.html` の `GAS_URL` を実URLに差し替える
-- Google Identity Servicesでのログイン(勤怠申請アプリと同じ方式)を追加。ログイン後のメールアドレスを `currentUserEmail` に設定し、品証担当者欄に自動反映する
-- アプリアイコン(PWA用)の作成
 - 将来的に加工ナレッジ等、他の西軽精機向けアプリもこのリポジトリに統合していく想定

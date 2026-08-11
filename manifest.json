@@ -1,10 +1,13 @@
 {
-  "name": "西軽精機アプリ",
-  "short_name": "西軽精機",
-  "description": "品質不具合報告 ほか(統合予定)",
+  "name": "品質保証課アプリ",
+  "short_name": "品質保証課",
+  "description": "品質不具合報告・検査担当割付・検査開始前保留",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#E9ECEF",
   "theme_color": "#1F3A52",
-  "icons": []
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
 }

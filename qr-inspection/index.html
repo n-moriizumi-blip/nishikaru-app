@@ -301,6 +301,13 @@
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
       }[c]));
     }
+
+    // 品質保証課アプリのトップ画面から ?func=assign / ?func=inspectionHold で
+    // 直接リンクされた場合は、この画面自身の選択(funcView)を飛ばして即座に該当機能へ進む
+    const deepLinkFunc = new URLSearchParams(window.location.search).get('func');
+    if (deepLinkFunc === 'assign' || deepLinkFunc === 'inspectionHold') {
+      selectFunction(deepLinkFunc);
+    }
   </script>
 </body>
 </html>
