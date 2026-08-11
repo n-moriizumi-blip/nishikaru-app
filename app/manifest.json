@@ -3,6 +3,7 @@
   "short_name": "品質保証課",
   "description": "品質不具合報告・検査担当割付・検査開始前保留",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#E9ECEF",
   "theme_color": "#1F3A52",

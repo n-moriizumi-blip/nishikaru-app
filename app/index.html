@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>品質保証課アプリ</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<style>
+  :root {
+    --navy: #1F3A52;
+    --amber: #F2A900;
+    --bg: #E9ECEF;
+    --text: #1D2226;
+    --border: #C7CDD3;
+    --gray: #5C6670;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+    font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+    display: flex; align-items: flex-start; justify-content: center; padding: 20px 14px;
+  }
+  .card {
+    width: 100%; max-width: 480px; background: #fff; border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06); overflow: hidden;
+  }
+  .card-header { background: var(--navy); padding: 20px 24px 18px; color: #fff; text-align: center; }
+  .brand { font-size: 11px; letter-spacing: .08em; color: var(--amber); font-weight: 700; }
+  .card-header h1 { margin: 5px 0 0; font-size: 19px; font-weight: 700; }
+  .card-body { padding: 18px; }
+  .card-body p.hint { margin: 0 0 16px; font-size: 13px; color: var(--gray); text-align: center; }
+
+  .fblocks { display: flex; flex-direction: column; gap: 10px; }
+  .fblock {
+    display: flex; align-items: center; justify-content: center; gap: 14px; width: 100%; padding: 18px;
+    border: none; border-radius: 14px; cursor: pointer; font-family: inherit;
+    transition: filter .1s, transform .1s; text-decoration: none;
+  }
+  .fblock:active { filter: brightness(.92); transform: scale(.985); }
+  .fblock .ico {
+    width: 42px; height: 42px; border-radius: 50%; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,.18);
+  }
+  .fblock .ico svg { width: 22px; height: 22px; fill: none; stroke: #fff; stroke-width: 2; }
+  .fblock .body { text-align: center; }
+  .fblock .body .title { font-size: 17px; font-weight: 700; color: #fff; }
+  .fblock .body .sub { font-size: 12px; margin-top: 2px; color: #fff; opacity: .85; }
+  .fblock.plum { background: #7A3B54; }
+  .fblock.navy { background: var(--navy); }
+  .fblock.terracotta { background: #B5541D; }
+  @media (prefers-reduced-motion: reduce) { .fblock { transition: none; } }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <div class="brand">品質保証課アプリ</div>
+      <h1>品質保証課</h1>
+    </div>
+    <div class="card-body">
+      <p class="hint">利用するアプリを選んでください。</p>
+      <div class="fblocks">
+        <a class="fblock plum" href="./defect-report/">
+          <div class="ico"><svg viewBox="0 0 24 24"><path d="M9 3h6v4H9z"/><rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 12h6M9 16h4"/></svg></div>
+          <div class="body"><div class="title">品質不具合報告</div><div class="sub">社内不良・差し戻し品のクイック入力</div></div>
+        </a>
+        <a class="fblock navy" href="./qr-inspection/?func=assign">
+          <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-4 4-6 7-6s5.8 2 7 6"/></svg></div>
+          <div class="body"><div class="title">検査担当割付</div><div class="sub">担当者を選んで割付を記録</div></div>
+        </a>
+        <a class="fblock terracotta" href="./qr-inspection/?func=inspectionHold">
+          <div class="ico"><svg viewBox="0 0 24 24"><rect x="7" y="5" width="3" height="14" rx="1"/><rect x="14" y="5" width="3" height="14" rx="1"/></svg></div>
+          <div class="body"><div class="title">検査開始前保留</div><div class="sub">検査開始前の保留を登録</div></div>
+        </a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
