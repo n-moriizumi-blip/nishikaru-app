@@ -39,6 +39,9 @@
     transition: filter .1s, transform .1s; text-decoration: none;
   }
   .fblock:active { filter: brightness(.92); transform: scale(.985); }
+  @media (hover: hover) and (pointer: fine) {
+    .fblock:hover { filter: brightness(1.1); box-shadow: 0 4px 14px rgba(0,0,0,.2); }
+  }
   .fblock .ico {
     width: 42px; height: 42px; border-radius: 50%; flex: none;
     display: flex; align-items: center; justify-content: center;
