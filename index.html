@@ -262,9 +262,12 @@ function init() {
 }
 
 /**
- * Google Identity Servicesの初期化とログインボタンの描画。
+ * Google Identity Servicesの初期化。
  * スクリプトは非同期読み込み(async defer)のため、まだ準備できていなければ少し待って再試行する
  * (勤怠管理システムのタブレットアプリと同じ待機パターン)。
+ * auto_select+prompt()で、ブラウザに既にログイン中のGoogleアカウントがあれば自動的にログインする
+ * (毎回ボタンを押さなくてよい)。自動ログインできない場合(初回・複数アカウント・シークレットモード等)
+ * に備えて、ボタンも一緒に表示しておく。
  */
 function initGoogleSignIn() {
   if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
@@ -273,11 +276,13 @@ function initGoogleSignIn() {
   }
   google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,
-    callback: handleCredentialResponse
+    callback: handleCredentialResponse,
+    auto_select: true
   });
   google.accounts.id.renderButton(document.getElementById('g_id_signin'), {
     theme: 'outline', size: 'large', text: 'signin_with', locale: 'ja'
   });
+  google.accounts.id.prompt(); // 自動ログインを試みる(One Tap)
 }
 
 function handleCredentialResponse(response) {
