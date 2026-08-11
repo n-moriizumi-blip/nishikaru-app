@@ -166,17 +166,15 @@
 
       <label class="field-label">加工情報</label>
       <div class="grid2">
-        <input type="text" id="f-kishu" placeholder="機種名">
+        <select id="f-kishu"><option value="">機種名を選択</option></select>
         <input type="text" id="f-setsubi" placeholder="設備№">
       </div>
       <div class="grid2" style="margin-top:8px">
-        <input type="text" id="f-kakosha" placeholder="加工者">
-        <input type="number" id="f-suryo" placeholder="数量">
+        <select id="f-kakosha"><option value="">加工者を選択</option></select>
+        <input type="number" id="f-suryo" placeholder="加工数(実際に加工した数)">
       </div>
-      <div class="grid2" style="margin-top:8px">
-        <input type="number" id="f-ryohin" placeholder="良品数">
-        <input type="text" id="f-zaishitsu" placeholder="材質">
-      </div>
+      <input type="text" id="f-zaishitsu" placeholder="材質" style="margin-top:8px">
+      <p class="hint2" style="text-align:left;margin-top:6px">良品数は加工数から不良数を自動で差し引くため、入力は不要です。</p>
 
       <label class="field-label">不良項目</label>
       <div class="item-row">
@@ -208,9 +206,8 @@
 <script>
 /* =========================================================================
    西軽精機アプリ｜品質不具合報告 (Phase 1)
-   現時点ではフロントエンドのみ。GAS APIが未実装のため、
-   QR→得意先名/品番の検索・送信処理はダミー(モック)になっている。
-   実装済みのGAS Web Appができたら fetchLookup / fetchSubmit を差し替える。
+   QR検索(mode=lookup)・プルダウン取得(mode=masters)・送信(action=submit)は
+   GAS_URL の WebApi.gs へ実際に接続する。GAS_URL が空文字の間だけモックデータで動作する。
    ========================================================================= */
 
 // GAS Web AppのデプロイURL。「拡張機能 > Apps Script」→「デプロイ」→「新しいデプロイ」で
@@ -239,7 +236,42 @@ function init() {
     opt.textContent = name;
     sel.appendChild(opt);
   });
+  loadMasters();
   startCamera();
+}
+
+/**
+ * 機種名(機械名)・加工者名のプルダウン候補を GAS 経由で「組織図マスタ」から取得する。
+ * GAS_URL 未設定の間は簡易的なモック一覧で動作する。
+ */
+function loadMasters() {
+  const apply = data => {
+    fillSelect('f-kishu', data.kishu || [], '機種名を選択');
+    fillSelect('f-kakosha', data.kakosha || [], '加工者を選択');
+  };
+  if (!GAS_URL) {
+    apply({ kishu: ['A20', 'A32', 'M20', 'M32(モック)'], kakosha: ['内田 正史', '田中 千也(モック)'] });
+    return;
+  }
+  fetch(GAS_URL + '?mode=masters')
+    .then(res => res.json())
+    .then(apply)
+    .catch(err => showToast('担当者一覧の取得に失敗しました: ' + err.message));
+}
+
+function fillSelect(id, values, placeholder) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = '';
+  const ph = document.createElement('option');
+  ph.value = '';
+  ph.textContent = placeholder;
+  sel.appendChild(ph);
+  values.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    sel.appendChild(opt);
+  });
 }
 
 function showScreen(name) {
@@ -434,8 +466,7 @@ function submitForm() {
     kishu: document.getElementById('f-kishu').value,
     setsubi: document.getElementById('f-setsubi').value,
     kakosha: document.getElementById('f-kakosha').value,
-    suryo: document.getElementById('f-suryo').value,
-    ryohin: document.getElementById('f-ryohin').value,
+    suryo: document.getElementById('f-suryo').value, // 加工数(良品数はGAS側でこの値から自動計算)
     zaishitsu: document.getElementById('f-zaishitsu').value,
     items,
     biko: document.getElementById('f-biko').value
