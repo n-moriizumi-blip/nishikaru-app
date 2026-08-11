@@ -42,6 +42,25 @@
 
   #menuView p.hint { margin: 0 0 18px; font-size: 13.5px; color: var(--gray); }
 
+  .fblocks { display: flex; flex-direction: column; gap: 10px; }
+  .fblock {
+    display: flex; align-items: center; justify-content: center; gap: 14px; width: 100%; padding: 18px;
+    border: none; border-radius: 14px; cursor: pointer; font-family: inherit;
+    transition: filter .1s, transform .1s;
+  }
+  .fblock:active { filter: brightness(.92); transform: scale(.985); }
+  .fblock .ico {
+    width: 42px; height: 42px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,.18);
+  }
+  .fblock .ico svg { width: 22px; height: 22px; fill: none; stroke: #fff; stroke-width: 2; }
+  .fblock .body { text-align: center; }
+  .fblock .body .title { font-size: 17px; font-weight: 700; color: #fff; }
+  .fblock .body .sub { font-size: 12px; margin-top: 2px; color: #fff; opacity: .85; }
+  .fblock.navy { background: var(--navy); }
+  .fblock.green { background: #2F7D5B; }
+  @media (prefers-reduced-motion: reduce) { .fblock { transition: none; } }
+
   #scanView { display: none; }
   .mode-chip {
     display: inline-block; background: #FDECC8; color: #6B4C00; border-radius: 20px;
@@ -84,8 +103,16 @@
     <div class="card-body">
       <div id="menuView">
         <p class="hint">スキャンする内容を選んでください。</p>
-        <button class="btn primary-btn" onclick="startMode('washingWait', '洗浄待機')">洗浄待機</button>
-        <button class="btn primary-btn" onclick="startMode('washingComplete', '洗浄完了')">洗浄完了</button>
+        <div class="fblocks">
+          <button class="fblock navy" onclick="startMode('washingWait', '洗浄待機')">
+            <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+            <div class="body"><div class="title">洗浄待機</div><div class="sub">これから洗浄する製番を登録</div></div>
+          </button>
+          <button class="fblock green" onclick="startMode('washingComplete', '洗浄完了')">
+            <div class="ico"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></div>
+            <div class="body"><div class="title">洗浄完了</div><div class="sub">洗浄が終わった製番を記録</div></div>
+          </button>
+        </div>
       </div>
 
       <div id="scanView">
