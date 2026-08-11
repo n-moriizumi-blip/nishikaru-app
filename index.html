@@ -65,9 +65,15 @@
   label.field-label::before { content: "⬡"; color: #F2A900; font-size: 12px; }
 
   input[type="text"], input[type="number"], select, textarea {
-    width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid #C7CDD3; border-radius: 10px; background: #fff; font-family: inherit;
+    width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid #C7CDD3; border-radius: 10px; background: #fff; font-family: inherit; color: #1D2226;
   }
   textarea { resize: vertical; min-height: 60px; }
+  /* プレースホルダー文字の色をグレーに統一(ブラウザ既定のままだと薄すぎたり濃すぎたりまちまちになるため) */
+  input::placeholder, textarea::placeholder { color: #8A93A0; opacity: 1; }
+  /* select は本物のplaceholder属性を持てないため、「未選択」の状態(先頭の空optionのまま)を
+     required + :invalid で判定し、同じグレーで見せる。値を選ぶと自動的に通常の文字色に戻る。 */
+  select:required:invalid { color: #8A93A0; }
+  select option { color: #1D2226; }
 
   .autofill-card { background: #F7F9FB; border: 1px solid #DCE3E9; border-radius: 12px; padding: 12px 14px; margin-bottom: 4px; }
   .autofill-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: #7A5A00; background: #FFF1CC; padding: 3px 8px; border-radius: 20px; margin-bottom: 8px; }
@@ -166,11 +172,11 @@
 
       <label class="field-label">加工情報</label>
       <div class="grid2">
-        <select id="f-kishu"><option value="">機種名を選択</option></select>
+        <select id="f-kishu" required><option value="">機種名を選択</option></select>
         <input type="text" id="f-setsubi" placeholder="設備№">
       </div>
       <div class="grid2" style="margin-top:8px">
-        <select id="f-kakosha"><option value="">加工者を選択</option></select>
+        <select id="f-kakosha" required><option value="">加工者を選択</option></select>
         <input type="number" id="f-suryo" placeholder="加工数(実際に加工した数)">
       </div>
       <input type="text" id="f-zaishitsu" placeholder="材質" style="margin-top:8px">
