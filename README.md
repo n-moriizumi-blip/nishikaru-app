@@ -1,4 +1,4 @@
-# nishikaru-app
+# nishikaru-kensa-app
 
 西軽精機の統合Webアプリ(GitHub Pages + GAS API構成)。既存の[勤怠申請アプリ](https://github.com/n-moriizumi-blip/nishikaru-shuusei-app)と同じ構成を踏襲している。
 
