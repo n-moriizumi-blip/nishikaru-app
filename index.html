@@ -203,6 +203,10 @@
         <input type="number" id="item-qty" placeholder="数量" min="1">
       </div>
       <input type="text" id="item-detail" placeholder="詳細(例: φ10.05など実測値・状況)" style="margin-top:8px">
+      <a href="javascript:void(0)" onclick="toggleItemWorker2()" style="display:block;font-size:12.5px;color:#1F3A52;margin-top:8px">＋ この項目だけ担当者が違う場合は指定する</a>
+      <div id="item-worker2-field" style="display:none;margin-top:6px">
+        <select id="item-worker2"><option value="">担当者2を選択</option></select>
+      </div>
       <button type="button" class="secondary-btn" onclick="addItem()" style="margin-top:8px">＋ この不良項目を追加</button>
       <div class="chips" id="item-chips"></div>
 
@@ -337,6 +341,7 @@ function loadMasters() {
   const apply = data => {
     fillSelect('f-kishu', data.kishu || [], '機種名を選択');
     fillSelect('f-kakosha', data.kakosha || [], '加工者を選択');
+    fillSelect('item-worker2', data.kakosha || [], '担当者2を選択'); // 加工者と同じ一覧を流用
   };
   if (!GAS_URL) {
     apply({ kishu: ['A20', 'A32', 'M20', 'M32(モック)'], kakosha: ['内田 正史', '田中 千也(モック)'] });
@@ -500,18 +505,27 @@ function selectShochi(el) {
   document.getElementById('tanka-field').style.display = (shochiKubun === '社内不良(KP)') ? '' : 'none';
 }
 
+/** 「＋ この項目だけ担当者が違う場合は指定する」リンクで担当者2欄の表示・非表示を切り替える */
+function toggleItemWorker2() {
+  const field = document.getElementById('item-worker2-field');
+  field.style.display = (field.style.display === 'none') ? '' : 'none';
+}
+
 function addItem() {
   const sel = document.getElementById('item-select');
   const qtyInput = document.getElementById('item-qty');
   const detailInput = document.getElementById('item-detail');
+  const worker2Select = document.getElementById('item-worker2');
   const qty = parseInt(qtyInput.value, 10);
   if (!sel.value || !qty || qty < 1) {
     showToast('不良項目と数量を選んでください');
     return;
   }
-  items.push({ name: sel.value, qty, detail: detailInput.value.trim() });
+  items.push({ name: sel.value, qty, detail: detailInput.value.trim(), worker2: worker2Select.value });
   qtyInput.value = '';
   detailInput.value = '';
+  worker2Select.value = '';
+  document.getElementById('item-worker2-field').style.display = 'none';
   renderChips();
 }
 
@@ -526,7 +540,10 @@ function renderChips() {
   items.forEach((item, i) => {
     const chip = document.createElement('span');
     chip.className = 'chip';
-    const label = item.name + ' × ' + item.qty + (item.detail ? '(' + item.detail + ')' : '') + ' ';
+    const label = item.name + ' × ' + item.qty
+      + (item.detail ? '(' + item.detail + ')' : '')
+      + (item.worker2 ? ' 👤' + item.worker2 : '')
+      + ' ';
     chip.appendChild(document.createTextNode(label));
     const btn = document.createElement('button');
     btn.textContent = '×';
