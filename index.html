@@ -119,8 +119,14 @@
   <div class="card-header">
     <p class="brand">西軽精機</p>
 
+    <!-- ⓪ ログイン画面 -->
+    <div id="screen-login-header" class="screen active">
+      <h1>品質不具合報告</h1>
+      <p class="sub">Googleアカウントでログインしてください</p>
+    </div>
+
     <!-- ① QRスキャン画面 -->
-    <div id="screen-scan" class="screen active">
+    <div id="screen-scan" class="screen">
       <h1>品質不具合報告</h1>
       <p class="sub">作業票のQRコードを読み取ってください</p>
     </div>
@@ -141,8 +147,14 @@
 
   <div class="card-body">
 
+    <!-- ⓪ ログイン画面 -->
+    <div id="screen-login" class="screen active">
+      <p class="hint2" style="text-align:center;margin-bottom:16px">品証担当者の記録に使うため、西軽精機のGoogleアカウントでログインしてください。</p>
+      <div id="g_id_signin" style="display:flex;justify-content:center;"></div>
+    </div>
+
     <!-- ① QRスキャン画面 -->
-    <div id="screen-scan-body" class="screen active">
+    <div id="screen-scan-body" class="screen">
       <div class="viewfinder">
         <video id="qr-video" playsinline muted></video>
         <div class="corner tl"></div><div class="corner tr"></div>
@@ -220,6 +232,9 @@
 // 発行されたURLをここに貼り付ける(WebApi.gs参照)。空のままだとモックデータで動作する。
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbygThIm2QVUek5ZSvUIuayfY3nUSmktUggkwZtc_Ezzc1GPA8VudiGAg2GKlHS4gfAI/exec';
 
+// Google Identity Services(ログイン)用クライアントID(品質保証課アプリ、Google Cloud Consoleで発行)
+const GOOGLE_CLIENT_ID = '800178947678-qdka8ic7v2c5bbeocgiqd8qqrheafq7e.apps.googleusercontent.com';
+
 // 不良項目マスタ(SetupSpreadsheet.gsのDEFECT_ITEMSと同じ29項目)
 const DEFECT_ITEMS = [
   '外径大','外径小','内径大','内径小','長さ不良','2次加工部寸法不良','ネジ不良','穴ズレ','芯ズレ・振れ大','テーパ不良','面取りの不良','挽目不良(面粗度)','その他の寸法不良',
@@ -231,8 +246,8 @@ let shochiKubun = '社内不良(KP)';
 let items = []; // {name, qty}
 let stream = null;
 let scanning = false;
-// TODO: Google Identity Servicesでのログイン実装後、ここにログイン中のメールアドレスを入れる
 let currentUserEmail = null;
+let idToken = null; // GASへ毎回の送信時に渡し、サーバー側で本人確認する
 
 function init() {
   const sel = document.getElementById('item-select');
@@ -243,7 +258,43 @@ function init() {
     sel.appendChild(opt);
   });
   loadMasters();
+  initGoogleSignIn();
+}
+
+/**
+ * Google Identity Servicesの初期化とログインボタンの描画。
+ * スクリプトは非同期読み込み(async defer)のため、まだ準備できていなければ少し待って再試行する
+ * (勤怠管理システムのタブレットアプリと同じ待機パターン)。
+ */
+function initGoogleSignIn() {
+  if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
+    setTimeout(initGoogleSignIn, 300);
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleCredentialResponse
+  });
+  google.accounts.id.renderButton(document.getElementById('g_id_signin'), {
+    theme: 'outline', size: 'large', text: 'signin_with', locale: 'ja'
+  });
+}
+
+function handleCredentialResponse(response) {
+  idToken = response.credential;
+  const payload = parseJwt(idToken);
+  currentUserEmail = payload.email || null;
+  showScreen('scan');
   startCamera();
+}
+
+/** JWTのpayload部分をデコードするだけ(表示用。検証は必ずサーバー側のGASで行う) */
+function parseJwt(token) {
+  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  const json = decodeURIComponent(
+    atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+  );
+  return JSON.parse(json);
 }
 
 /**
@@ -462,13 +513,11 @@ function submitForm() {
   }
   const payload = {
     action: 'submit',
+    idToken, // GAS側がこのIDトークンをGoogleに照会して本人確認し、品証担当者(C列)に記録する
     mfgNo: document.getElementById('f-mfgno').textContent,
     customer: document.getElementById('f-customer').textContent,
     drawing: document.getElementById('f-drawing').textContent,
     shochiKubun,
-    // 品証担当者: 手入力させず、ログイン中のGoogleアカウントをそのまま記録する(不良〇月シートC列)。
-    // TODO: Google Identity Servicesでのログイン実装後、currentUserEmail をここへ渡す。
-    hinshoTantosha: currentUserEmail || '(未ログイン)',
     kishu: document.getElementById('f-kishu').value,
     setsubi: document.getElementById('f-setsubi').value,
     kakosha: document.getElementById('f-kakosha').value,
