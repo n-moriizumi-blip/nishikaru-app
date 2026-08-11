@@ -112,6 +112,7 @@
         </div>
         <div id="status">QRコードをかざしてください</div>
         <button class="btn secondary-btn" onclick="backFromScan()">戻る</button>
+        <p id="changeStaffLink" class="hint" style="text-align:center; margin-top:12px; text-decoration:underline; cursor:pointer; display:none;" onclick="changeStaff()">担当者を変更</p>
       </div>
 
     </div>
@@ -186,6 +187,7 @@
     async function startScanFor(func, chipLabel) {
       currentFunc = func;
       modeChip.textContent = chipLabel;
+      document.getElementById('changeStaffLink').style.display = (func === 'assign') ? 'block' : 'none';
       showView(scanView);
       statusEl.textContent = "QRコードをかざしてください";
       try {
@@ -198,13 +200,14 @@
 
     function backFromScan() {
       scanning = false;
-      if (currentFunc === 'assign') {
-        selectedStaff = '';
-        localStorage.removeItem('inspectionStaff');
-        showView(funcView);
-      } else {
-        showView(funcView);
-      }
+      showView(funcView);
+    }
+
+    function changeStaff() {
+      scanning = false;
+      selectedStaff = '';
+      localStorage.removeItem('inspectionStaff');
+      loadStaffList().then(() => showView(staffView));
     }
 
     function startScanLoop() { scanning = true; requestAnimationFrame(tick); }
