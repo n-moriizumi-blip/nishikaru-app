@@ -26,7 +26,15 @@
     overflow: hidden;
     box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
   }
-  .card-header { background: #1F3A52; padding: 18px 24px 16px; text-align: center; }
+  .card-header { background: #1F3A52; padding: 18px 24px 16px; text-align: center; position: relative; }
+  .dashboard-link {
+    position: absolute; top: 14px; right: 16px;
+    display: flex; align-items: center; gap: 4px;
+    font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,.85);
+    text-decoration: none; padding: 5px 9px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.3);
+  }
+  .dashboard-link:hover { background: rgba(255,255,255,.1); }
   .card-header .brand { font-size: 11px; font-weight: 700; color: #F2A900; letter-spacing: .08em; margin: 0 0 4px; }
   .card-header .back-link { display: inline-block; font-size: 13px; color: rgba(255,255,255,.75); cursor: pointer; margin: 0 0 6px; background: none; border: none; padding: 0; }
   .card-header h1 { font-size: 19px; margin: 0 0 4px; color: #fff; }
@@ -117,6 +125,7 @@
 
 <div class="card">
   <div class="card-header">
+    <a class="dashboard-link" href="./dashboard.html">📊 ダッシュボード</a>
     <p class="brand">西軽精機</p>
 
     <!-- ⓪ ログイン画面 -->
