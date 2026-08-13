@@ -100,7 +100,6 @@
   .primary-btn { width: 100%; margin-top: 24px; padding: 13px; font-size: 16px; font-weight: 700; color: #1D2226; background: #F2A900; border: none; border-radius: 12px; cursor: pointer; }
   .primary-btn:disabled { background: #D9DDE1; color: #8A93A0; cursor: default; }
   .secondary-btn { width: 100%; margin-top: 10px; padding: 11px; font-size: 14px; background: #fff; color: #1F3A52; border: 1px solid #C7CDD3; border-radius: 12px; cursor: pointer; }
-  a.secondary-btn { display: block; box-sizing: border-box; text-align: center; text-decoration: none; }
 
   .toast {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(.95);
@@ -152,7 +151,6 @@
     <div id="screen-login" class="screen active">
       <p class="hint2" style="text-align:center;margin-bottom:16px">品証担当者の記録に使うため、西軽精機のGoogleアカウントでログインしてください。</p>
       <div id="g_id_signin" style="display:flex;justify-content:center;"></div>
-      <a class="secondary-btn" href="./dashboard.html">📊 ダッシュボードを見る</a>
     </div>
 
     <!-- ① QRスキャン画面 -->
@@ -167,7 +165,6 @@
       <p class="hint" id="scan-hint">QRコードを枠内に合わせてください</p>
       <p class="hint2">作業票に印字された製造番号のQRコードを読み取ります</p>
       <button class="secondary-btn" onclick="openManualEntry()">QRが読めないときは手入力する</button>
-      <a class="secondary-btn" href="./dashboard.html">📊 ダッシュボードを見る</a>
     </div>
 
     <!-- ② 入力フォーム画面 -->
