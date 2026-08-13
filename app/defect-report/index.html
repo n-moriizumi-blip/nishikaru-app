@@ -218,7 +218,7 @@
       <label>備考</label>
       <textarea id="f-biko" placeholder="任意"></textarea>
 
-      <button class="primary-btn" onclick="submitForm()">送信する</button>
+      <button class="primary-btn" id="submit-btn" onclick="submitForm()">送信する</button>
     </div>
 
     <!-- ③ 完了画面 -->
@@ -591,12 +591,21 @@ function submitForm() {
     biko: document.getElementById('f-biko').value
   };
   console.log('[品質不具合報告] 送信データ:', payload);
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = '送信中…';
+
   fetchSubmit(payload).then(result => {
     if (result.ok === false) {
       showToast('送信に失敗しました: ' + (result.error || ''));
+      btn.disabled = false;
+      btn.textContent = '送信する';
       return;
     }
     showScreen('done');
+    btn.disabled = false;
+    btn.textContent = '送信する';
   });
 }
 
