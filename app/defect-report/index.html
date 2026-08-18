@@ -517,17 +517,15 @@ function selectShochi(el) {
 }
 
 /**
- * キズ原因欄の表示・必須判定(2026-08-18新設)。処置区分=社内不良(KP) かつ
- * (選択中の不良項目、または追加済みの不良項目のいずれか)がキズ系のときだけ表示・必須にする。
- * それ以外は非表示にして入力値もクリアする(隠れた必須項目が送信に紛れ込まないようにするため)。
+ * キズ原因欄の表示・必須判定(2026-08-18新設、同日中に処置区分の条件を削除)。
+ * (選択中の不良項目、または追加済みの不良項目のいずれか)がキズ系のときだけ表示・必須にする
+ * (処置区分は問わない)。それ以外は非表示にして入力値もクリアする
+ * (隠れた必須項目が送信に紛れ込まないようにするため)。
  */
 function updateKizuGenInVisibility() {
-  const isKp = (shochiKubun === '社内不良(KP)');
   const selectedName = document.getElementById('item-select').value;
-  const hasKizu = KIZU_KEI_DEFECT_ITEMS.includes(selectedName) || items.some(it => KIZU_KEI_DEFECT_ITEMS.includes(it.name));
-  const show = isKp && hasKizu;
+  const show = KIZU_KEI_DEFECT_ITEMS.includes(selectedName) || items.some(it => KIZU_KEI_DEFECT_ITEMS.includes(it.name));
   document.getElementById('kizugenin-field').style.display = show ? '' : 'none';
-  document.getElementById('kizugenin-label').textContent = show ? 'キズ原因(必須)' : 'キズ原因';
   if (!show) document.getElementById('f-kizugenin').value = '';
 }
 
