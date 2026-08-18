@@ -209,10 +209,10 @@
       <button type="button" class="secondary-btn" onclick="addItem()" style="margin-top:8px">＋ この不良項目を追加</button>
       <div class="chips" id="item-chips"></div>
 
-      <div id="kizugenin-field">
-        <label class="field-label">キズ原因(任意)</label>
-        <p class="hint2" style="text-align:left;margin-bottom:6px">圧痕・打痕などキズ系の不良の原因分析に使います。該当しなければ選ばなくてよいです。</p>
-        <select id="f-kizugenin"><option value="">選択しない</option></select>
+      <div id="kizugenin-field" style="display:none">
+        <label class="field-label" id="kizugenin-label">キズ原因</label>
+        <p class="hint2" style="text-align:left;margin-bottom:6px">キズ系の不良項目が選ばれたときに表示されます。原因分析のため選択してください。</p>
+        <select id="f-kizugenin" required><option value="">選択してください</option></select>
       </div>
 
       <label>備考</label>
@@ -269,6 +269,11 @@ const KIZU_GENIN_ITEMS = [
   'その他'
 ];
 
+// キズ系の不良項目(2026-08-18新設)。このいずれかが選択中または追加済みなら、キズ原因欄を表示・必須にする
+const KIZU_KEI_DEFECT_ITEMS = [
+  'キズ', '流動キズ', 'チャックキズ', '回収時キズ', '落下キズ', '材料キズ', '加工時キズ', 'ガイドブッシュキズ', 'その他キズ'
+];
+
 let shochiKubun = '社内不良(KP)';
 let items = []; // {name, qty, detail}
 let stream = null;
@@ -284,6 +289,7 @@ function init() {
     opt.textContent = name;
     sel.appendChild(opt);
   });
+  sel.addEventListener('change', updateKizuGenInVisibility);
   const kizuSel = document.getElementById('f-kizugenin');
   KIZU_GENIN_ITEMS.forEach(name => {
     const opt = document.createElement('option');
@@ -507,9 +513,22 @@ function selectShochi(el) {
   var isKp = (shochiKubun === '社内不良(KP)');
   // 単価は社内不良(KP)のときだけ入力する(差し戻しは金額を集計しないため)
   document.getElementById('tanka-field').style.display = isKp ? '' : 'none';
-  // キズ原因は社内不良(KP)のときだけ入力する(差し戻しでは使わない項目のため)
-  document.getElementById('kizugenin-field').style.display = isKp ? '' : 'none';
-  if (!isKp) document.getElementById('f-kizugenin').value = '';
+  updateKizuGenInVisibility();
+}
+
+/**
+ * キズ原因欄の表示・必須判定(2026-08-18新設)。処置区分=社内不良(KP) かつ
+ * (選択中の不良項目、または追加済みの不良項目のいずれか)がキズ系のときだけ表示・必須にする。
+ * それ以外は非表示にして入力値もクリアする(隠れた必須項目が送信に紛れ込まないようにするため)。
+ */
+function updateKizuGenInVisibility() {
+  const isKp = (shochiKubun === '社内不良(KP)');
+  const selectedName = document.getElementById('item-select').value;
+  const hasKizu = KIZU_KEI_DEFECT_ITEMS.includes(selectedName) || items.some(it => KIZU_KEI_DEFECT_ITEMS.includes(it.name));
+  const show = isKp && hasKizu;
+  document.getElementById('kizugenin-field').style.display = show ? '' : 'none';
+  document.getElementById('kizugenin-label').textContent = show ? 'キズ原因(必須)' : 'キズ原因';
+  if (!show) document.getElementById('f-kizugenin').value = '';
 }
 
 /** 「＋ この項目だけ担当者が違う場合は指定する」リンクで担当者2欄の表示・非表示を切り替える */
@@ -534,11 +553,13 @@ function addItem() {
   worker2Select.value = '';
   document.getElementById('item-worker2-field').style.display = 'none';
   renderChips();
+  updateKizuGenInVisibility();
 }
 
 function removeItem(index) {
   items.splice(index, 1);
   renderChips();
+  updateKizuGenInVisibility();
 }
 
 function renderChips() {
@@ -570,6 +591,10 @@ function showToast(msg) {
 function submitForm() {
   if (items.length === 0) {
     showToast('不良項目を1件以上追加してください');
+    return;
+  }
+  if (document.getElementById('kizugenin-field').style.display !== 'none' && !document.getElementById('f-kizugenin').value) {
+    showToast('キズ原因を選択してください');
     return;
   }
   const payload = {
