@@ -459,8 +459,31 @@ function extractMfgNo(text) {
   return text;
 }
 
+/**
+ * QRコード読み取り完了時の通知音(2026-08-18新設)。音声ファイルを用意する代わりに
+ * Web Audio APIで短いビープ音を生成する(オフライン環境でも確実に鳴らせるため)。
+ * ブラウザの自動再生制限により、ユーザー操作(カメラ起動ボタン等)より前には鳴らせないが、
+ * QRスキャンはユーザーがカメラ画面を開いた後の操作のため問題にならない。
+ */
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.18);
+  } catch (e) { /* 音を鳴らせない環境でも読み取り自体は継続する */ }
+}
+
 function onQrDetected(text) {
   stopCamera();
+  playBeep();
   document.getElementById('scan-hint').textContent = '読み取りました。検索中...';
   const mfgNo = extractMfgNo(text);
   lookupByManufacturingNumber(mfgNo).then(result => {
