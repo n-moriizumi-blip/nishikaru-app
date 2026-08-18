@@ -76,6 +76,9 @@
   select option { color: #1D2226; }
 
   .autofill-card { background: #F7F9FB; border: 1px solid #DCE3E9; border-radius: 12px; padding: 12px 14px; margin-bottom: 4px; }
+  .edit-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #FFF6E0; border: 1px solid #F2CB6B; border-radius: 12px; padding: 10px 14px; margin-bottom: 4px; }
+  .edit-banner p { margin: 0; font-size: 12.5px; font-weight: 700; color: #7A5A00; }
+  .edit-banner button { flex-shrink: 0; appearance: none; border: 1px solid #C7A659; background: #fff; color: #7A5A00; font: inherit; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
   .autofill-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: #7A5A00; background: #FFF1CC; padding: 3px 8px; border-radius: 20px; margin-bottom: 8px; }
   .kv { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-top: 1px solid #E3E8EC; }
   .kv:first-of-type { border-top: none; }
@@ -176,6 +179,11 @@
         <div class="kv"><span class="k">品番(図番)</span><span class="v" id="f-drawing">—</span></div>
       </div>
 
+      <div id="edit-banner" class="edit-banner" style="display:none">
+        <p>以前の入力を編集しています</p>
+        <button type="button" onclick="startFreshEntry()">新規入力にする</button>
+      </div>
+
       <label class="field-label">処置区分</label>
       <div class="pill-group">
         <div class="pill on" data-val="社内不良(KP)" onclick="selectShochi(this)">社内不良(KP)</div>
@@ -224,7 +232,7 @@
     <!-- ③ 完了画面 -->
     <div id="screen-done" class="screen done">
       <div class="done-icon">✓</div>
-      <h2>入力内容を受け付けました</h2>
+      <h2 id="done-heading">入力内容を受け付けました</h2>
       <button class="secondary-btn" onclick="goToScan()">最初からやり直す</button>
     </div>
 
@@ -276,6 +284,8 @@ const KIZU_KEI_DEFECT_ITEMS = [
 
 let shochiKubun = '社内不良(KP)';
 let items = []; // {name, qty, detail}
+let editingId = null;    // 編集モード時の送信ID(W列)。nullなら新規入力(2026-08-18新設)
+let editingMonth = null; // 編集対象の記録がある「不良〇月」の月番号
 let stream = null;
 let scanning = false;
 let currentUserEmail = null;
@@ -456,6 +466,7 @@ function onQrDetected(text) {
   lookupByManufacturingNumber(mfgNo).then(result => {
     fillFormFromLookup(mfgNo, result);
     showScreen('form');
+    tryLoadExistingRecord(mfgNo);
   });
 }
 
@@ -467,7 +478,71 @@ function openManualEntry() {
     fillFormFromLookup(mfgNo, result);
     stopCamera();
     showScreen('form');
+    tryLoadExistingRecord(mfgNo);
   });
+}
+
+/**
+ * 製造番号について、ログイン中の本人が過去に送信した記録(今月・先月分のみ)を探し、
+ * 見つかればフォームへ読み込んで編集モードにする(2026-08-18新設)。GAS_URL未設定(モック動作)の
+ * 間や、探索に失敗した場合は何もしない(新規入力の妨げにしない、黙って無視する)。
+ */
+function tryLoadExistingRecord(mfgNo) {
+  if (!GAS_URL || !idToken) return;
+  fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'lookupRecord', idToken, mfgNo })
+  })
+    .then(res => res.json())
+    .then(data => { if (data.found) populateFormFromRecord(data.id, data.month, data.record); })
+    .catch(() => {});
+}
+
+/** 見つかった過去の記録をフォームへ読み込み、編集モードに切り替える */
+function populateFormFromRecord(id, month, record) {
+  editingId = id;
+  editingMonth = month;
+  document.getElementById('edit-banner').style.display = '';
+
+  const pill = document.querySelector('.pill[data-val="' + record.shochiKubun + '"]');
+  if (pill) selectShochi(pill);
+
+  document.getElementById('f-kishu').value = record.kishu || '';
+  document.getElementById('f-setsubi').value = record.setsubi || '';
+  document.getElementById('f-kakosha').value = record.kakosha || '';
+  document.getElementById('f-suryo').value = record.suryo || '';
+  document.getElementById('f-zaishitsu').value = record.zaishitsu || '';
+  document.getElementById('f-tanka').value = record.tanka || '';
+  document.getElementById('f-biko').value = record.biko || '';
+  document.getElementById('f-kizugenin').value = record.kizugenin || '';
+
+  items = (record.items || []).map(it => ({ name: it.name, qty: it.qty, detail: it.detail || '', worker2: it.worker2 || '' }));
+  renderChips();
+  updateKizuGenInVisibility();
+}
+
+/** 「新規入力にする」ボタン: 編集モードを解除し、フォームを空の新規入力状態に戻す(製造番号・得意先名・品番はそのまま) */
+function startFreshEntry() {
+  editingId = null;
+  editingMonth = null;
+  document.getElementById('edit-banner').style.display = 'none';
+
+  const defaultPill = document.querySelector('.pill[data-val="社内不良(KP)"]');
+  if (defaultPill) selectShochi(defaultPill);
+
+  document.getElementById('f-kishu').value = '';
+  document.getElementById('f-setsubi').value = '';
+  document.getElementById('f-kakosha').value = '';
+  document.getElementById('f-suryo').value = '';
+  document.getElementById('f-zaishitsu').value = '';
+  document.getElementById('f-tanka').value = '';
+  document.getElementById('f-biko').value = '';
+  document.getElementById('f-kizugenin').value = '';
+
+  items = [];
+  renderChips();
+  updateKizuGenInVisibility();
 }
 
 /**
@@ -504,6 +579,11 @@ function fillFormFromLookup(mfgNo, result) {
   document.getElementById('f-drawing').textContent = result.drawing || '(該当なし)';
   items = [];
   renderChips();
+  // 新しいQRを読むたびに一旦編集モードを解除する(直後にtryLoadExistingRecordが該当記録を
+  // 見つければ、populateFormFromRecordが改めて編集モードに切り替える)
+  editingId = null;
+  editingMonth = null;
+  document.getElementById('edit-banner').style.display = 'none';
 }
 
 function selectShochi(el) {
@@ -596,7 +676,7 @@ function submitForm() {
     return;
   }
   const payload = {
-    action: 'submit',
+    action: editingId ? 'update' : 'submit', // 編集モード(2026-08-18新設)ならupdate、それ以外は新規submit
     idToken, // GAS側がこのIDトークンをGoogleに照会して本人確認し、品証担当者(C列)に記録する
     mfgNo: document.getElementById('f-mfgno').textContent,
     customer: document.getElementById('f-customer').textContent,
@@ -612,6 +692,10 @@ function submitForm() {
     kizugenin: document.getElementById('f-kizugenin').value, // キズ原因(任意)
     biko: document.getElementById('f-biko').value
   };
+  if (editingId) {
+    payload.id = editingId;
+    payload.month = editingMonth;
+  }
   console.log('[品質不具合報告] 送信データ:', payload);
 
   const btn = document.getElementById('submit-btn');
@@ -625,6 +709,7 @@ function submitForm() {
       btn.textContent = '送信する';
       return;
     }
+    document.getElementById('done-heading').textContent = editingId ? '内容を更新しました' : '入力内容を受け付けました';
     showScreen('done');
     btn.disabled = false;
     btn.textContent = '送信する';
