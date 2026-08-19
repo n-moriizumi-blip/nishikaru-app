@@ -200,14 +200,17 @@
         <input type="number" id="f-suryo" placeholder="加工数(実際に加工した数)">
       </div>
       <input type="text" id="f-zaishitsu" placeholder="材質" style="margin-top:8px">
-      <div id="tanka-field" style="margin-top:8px">
+      <div class="grid2" style="margin-top:8px">
         <input type="number" id="f-tanka" placeholder="単価">
+        <div id="shuseisu-field" style="display:none">
+          <input type="number" id="f-shuseisu" placeholder="修正数">
+        </div>
       </div>
 
       <label class="field-label">不良項目</label>
       <div class="item-row">
         <select id="item-select"></select>
-        <input type="number" id="item-qty" placeholder="数量" min="1">
+        <input type="number" id="item-qty" placeholder="不良数" min="1">
       </div>
       <input type="text" id="item-detail" placeholder="詳細(例: φ10.05など実測値・状況)" style="margin-top:8px">
       <a href="javascript:void(0)" onclick="toggleItemWorker2()" style="display:block;font-size:12.5px;color:#1F3A52;margin-top:8px">＋ この項目だけ担当者が違う場合は指定する</a>
@@ -537,6 +540,7 @@ function populateFormFromRecord(id, month, record) {
   document.getElementById('f-suryo').value = record.suryo || '';
   document.getElementById('f-zaishitsu').value = record.zaishitsu || '';
   document.getElementById('f-tanka').value = record.tanka || '';
+  document.getElementById('f-shuseisu').value = record.shuseisu || '';
   document.getElementById('f-biko').value = record.biko || '';
   document.getElementById('f-kizugenin').value = record.kizugenin || '';
 
@@ -560,6 +564,7 @@ function startFreshEntry() {
   document.getElementById('f-suryo').value = '';
   document.getElementById('f-zaishitsu').value = '';
   document.getElementById('f-tanka').value = '';
+  document.getElementById('f-shuseisu').value = '';
   document.getElementById('f-biko').value = '';
   document.getElementById('f-kizugenin').value = '';
 
@@ -613,9 +618,11 @@ function selectShochi(el) {
   document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
   el.classList.add('on');
   shochiKubun = el.dataset.val;
-  var isKp = (shochiKubun === '社内不良(KP)');
-  // 単価は社内不良(KP)のときだけ入力する(差し戻しは金額を集計しないため)
-  document.getElementById('tanka-field').style.display = isKp ? '' : 'none';
+  var isRework = (shochiKubun === '差し戻し');
+  // 修正数は差し戻しのときだけ入力する(社内不良(KP)では使わない項目のため)。
+  // 単価は2026-08-19からKP・差し戻し両方で入力するよう変更(以前はKP限定だった)。
+  document.getElementById('shuseisu-field').style.display = isRework ? '' : 'none';
+  if (!isRework) document.getElementById('f-shuseisu').value = '';
   updateKizuGenInVisibility();
 }
 
@@ -645,7 +652,7 @@ function addItem() {
   const worker2Select = document.getElementById('item-worker2');
   const qty = parseInt(qtyInput.value, 10);
   if (!sel.value || !qty || qty < 1) {
-    showToast('不良項目と数量を選んでください');
+    showToast('不良項目と不良数を選んでください');
     return;
   }
   items.push({ name: sel.value, qty, detail: detailInput.value.trim(), worker2: worker2Select.value });
@@ -710,7 +717,8 @@ function submitForm() {
     kakosha: document.getElementById('f-kakosha').value,
     suryo: document.getElementById('f-suryo').value, // 加工数(良品数はGAS側でこの値から自動計算)
     zaishitsu: document.getElementById('f-zaishitsu').value,
-    tanka: document.getElementById('f-tanka').value, // 単価(社内不良(KP)のときのみ意味を持つ)
+    tanka: document.getElementById('f-tanka').value, // 単価(社内不良(KP)・差し戻し共通)
+    shuseisu: document.getElementById('f-shuseisu').value, // 修正数(差し戻しのときのみ意味を持つ)
     items, // [{name, qty, detail}]
     kizugenin: document.getElementById('f-kizugenin').value, // キズ原因(任意)
     biko: document.getElementById('f-biko').value
