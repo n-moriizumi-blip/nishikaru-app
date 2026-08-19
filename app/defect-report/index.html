@@ -581,7 +581,10 @@ function lookupByManufacturingNumber(mfgNo) {
   if (!GAS_URL) {
     return new Promise(resolve => {
       setTimeout(() => {
-        resolve({ found: true, customer: '協和精工第一(モック)', drawing: 'C9050-177' });
+        resolve({
+          found: true, customer: '協和精工第一(モック)', drawing: 'C9050-177',
+          kishu: 'A20', setsubi: '10', kakosha: '内田 正史', suryo: 91, zaishitsu: 'SUS303', tanka: 1650
+        });
       }, 500);
     });
   }
@@ -605,6 +608,14 @@ function fillFormFromLookup(mfgNo, result) {
   document.getElementById('f-mfgno').textContent = mfgNo;
   document.getElementById('f-customer').textContent = result.customer || '(該当なし)';
   document.getElementById('f-drawing').textContent = result.drawing || '(該当なし)';
+  // 進捗状況照会からの自動入力(2026-08-19新設)。機種名・設備№・加工者名は確定ではないため、
+  // あくまで入力の初期値として埋めるだけで、そのまま変更できる入力欄のまま
+  document.getElementById('f-kishu').value = result.kishu || '';
+  document.getElementById('f-setsubi').value = result.setsubi || '';
+  document.getElementById('f-kakosha').value = result.kakosha || '';
+  document.getElementById('f-suryo').value = result.suryo || '';
+  document.getElementById('f-zaishitsu').value = result.zaishitsu || '';
+  document.getElementById('f-tanka').value = result.tanka || '';
   items = [];
   renderChips();
   // 新しいQRを読むたびに一旦編集モードを解除する(直後にtryLoadExistingRecordが該当記録を
