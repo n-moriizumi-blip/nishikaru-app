@@ -96,9 +96,9 @@
   .field-with-label { display: flex; flex-direction: column; gap: 3px; }
   .mini-label { font-size: 11px; font-weight: 600; color: #5C6670; }
 
-  .item-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
-  .item-row select { flex: 2; }
-  .item-row input { flex: 1; }
+  .item-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 8px; }
+  .item-row > .field-with-label { flex: 1; min-width: 0; }
+  .item-row > .field-with-label:first-child { flex: 2; }
   .item-row button { flex: 0 0 auto; padding: 10px 12px; border-radius: 10px; border: 1px solid #C7CDD3; background: #fff; font-size: 13px; font-weight: 700; color: #1F3A52; }
 
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
@@ -233,8 +233,14 @@
 
       <label class="field-label">不良項目</label>
       <div class="item-row">
-        <select id="item-select"></select>
-        <input type="number" id="item-qty" placeholder="不良数" min="1">
+        <div class="field-with-label">
+          <span class="mini-label">不良項目</span>
+          <select id="item-select"></select>
+        </div>
+        <div class="field-with-label">
+          <span class="mini-label">不良数</span>
+          <input type="number" id="item-qty" placeholder="不良数" min="1">
+        </div>
       </div>
       <input type="text" id="item-detail" placeholder="詳細(例: φ10.05など実測値・状況)" style="margin-top:8px">
       <a href="javascript:void(0)" onclick="toggleItemWorker2()" style="display:block;font-size:12.5px;color:#1F3A52;margin-top:8px">＋ この項目だけ担当者が違う場合は指定する</a>
