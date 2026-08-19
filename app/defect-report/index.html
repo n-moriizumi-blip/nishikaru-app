@@ -91,6 +91,11 @@
 
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
+  /* QR/I-Proからの自動入力で値が埋まった後もプレースホルダだけでは項目名が分からなくなるため、
+     常時表示の小さいラベルを添える(2026-08-19新設) */
+  .field-with-label { display: flex; flex-direction: column; gap: 3px; }
+  .mini-label { font-size: 11px; font-weight: 600; color: #5C6670; }
+
   .item-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
   .item-row select { flex: 2; }
   .item-row input { flex: 1; }
@@ -192,17 +197,36 @@
 
       <label class="field-label">加工情報</label>
       <div class="grid2">
-        <select id="f-kishu" required><option value="">機種名を選択</option></select>
-        <input type="text" id="f-setsubi" placeholder="設備№">
+        <div class="field-with-label">
+          <span class="mini-label">機種名</span>
+          <select id="f-kishu" required><option value="">機種名を選択</option></select>
+        </div>
+        <div class="field-with-label">
+          <span class="mini-label">設備№</span>
+          <input type="text" id="f-setsubi" placeholder="設備№">
+        </div>
       </div>
       <div class="grid2" style="margin-top:8px">
-        <select id="f-kakosha" required><option value="">加工者を選択</option></select>
-        <input type="number" id="f-suryo" placeholder="加工数(実際に加工した数)">
+        <div class="field-with-label">
+          <span class="mini-label">加工者</span>
+          <select id="f-kakosha" required><option value="">加工者を選択</option></select>
+        </div>
+        <div class="field-with-label">
+          <span class="mini-label">加工数</span>
+          <input type="number" id="f-suryo" placeholder="加工数(実際に加工した数)">
+        </div>
       </div>
-      <input type="text" id="f-zaishitsu" placeholder="材質" style="margin-top:8px">
+      <div class="field-with-label" style="margin-top:8px">
+        <span class="mini-label">材質</span>
+        <input type="text" id="f-zaishitsu" placeholder="材質">
+      </div>
       <div class="grid2" style="margin-top:8px">
-        <input type="number" id="f-tanka" placeholder="単価">
-        <div id="shuseisu-field" style="display:none">
+        <div class="field-with-label">
+          <span class="mini-label">単価</span>
+          <input type="number" id="f-tanka" placeholder="単価">
+        </div>
+        <div id="shuseisu-field" class="field-with-label" style="display:none">
+          <span class="mini-label">修正数</span>
           <input type="number" id="f-shuseisu" placeholder="修正数">
         </div>
       </div>
@@ -373,6 +397,29 @@ function loadMasters() {
     .then(res => res.json())
     .then(apply)
     .catch(err => showToast('担当者一覧の取得に失敗しました: ' + err.message));
+}
+
+/**
+ * プルダウン(組織図マスタ由来)へ、進捗状況照会からの値を設定する(2026-08-19新設)。
+ * I-Pro側の表記(スペースの有無など)がマスタの表記と完全一致しないことがあるため、
+ * 空白(半角・全角とも)を除いた上で比較し、一致する選択肢が見つかればその選択肢(マスタ側の
+ * 正式な表記)を選ぶ。一致しなければ、無理に選ばず未選択のままにする(誤った値を選ぶよりよい)。
+ */
+function setSelectValueFuzzy(selectId, rawValue) {
+  const sel = document.getElementById(selectId);
+  const target = normalizeForMatch(rawValue);
+  if (!target) { sel.value = ''; return; }
+  for (const opt of sel.options) {
+    if (normalizeForMatch(opt.value) === target) {
+      sel.value = opt.value;
+      return;
+    }
+  }
+  sel.value = '';
+}
+
+function normalizeForMatch(s) {
+  return (s || '').toString().replace(/[\s　]/g, '');
 }
 
 function fillSelect(id, values, placeholder) {
@@ -609,10 +656,11 @@ function fillFormFromLookup(mfgNo, result) {
   document.getElementById('f-customer').textContent = result.customer || '(該当なし)';
   document.getElementById('f-drawing').textContent = result.drawing || '(該当なし)';
   // 進捗状況照会からの自動入力(2026-08-19新設)。機種名・設備№・加工者名は確定ではないため、
-  // あくまで入力の初期値として埋めるだけで、そのまま変更できる入力欄のまま
-  document.getElementById('f-kishu').value = result.kishu || '';
+  // あくまで入力の初期値として埋めるだけで、そのまま変更できる入力欄のまま。
+  // 機種名・加工者はプルダウン(組織図マスタ)のため、表記ゆれ(スペースの有無等)を無視して一致判定する
+  setSelectValueFuzzy('f-kishu', result.kishu);
   document.getElementById('f-setsubi').value = result.setsubi || '';
-  document.getElementById('f-kakosha').value = result.kakosha || '';
+  setSelectValueFuzzy('f-kakosha', result.kakosha);
   document.getElementById('f-suryo').value = result.suryo || '';
   document.getElementById('f-zaishitsu').value = result.zaishitsu || '';
   document.getElementById('f-tanka').value = result.tanka || '';
