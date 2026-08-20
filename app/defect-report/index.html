@@ -105,6 +105,9 @@
   .chip { display: flex; align-items: center; gap: 6px; background: #FDECC8; color: #6B4C00; font-size: 12.5px; font-weight: 600; padding: 6px 8px 6px 12px; border-radius: 20px; }
   .chip button { width: 17px; height: 17px; border-radius: 50%; background: rgba(0,0,0,.12); border: none; display: flex; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; color: inherit; }
 
+  /* 不良率が高い送信への注意喚起(2026-08-19新設) */
+  .warning-note { color: #d03b3b; font-size: 13px; font-weight: 700; text-align: center; margin: 18px 0 0; }
+
   .primary-btn { width: 100%; margin-top: 24px; padding: 13px; font-size: 16px; font-weight: 700; color: #1D2226; background: #F2A900; border: none; border-radius: 12px; cursor: pointer; }
   .primary-btn:disabled { background: #D9DDE1; color: #8A93A0; cursor: default; }
   .secondary-btn { width: 100%; margin-top: 10px; padding: 11px; font-size: 14px; background: #fff; color: #1F3A52; border: 1px solid #C7CDD3; border-radius: 12px; cursor: pointer; }
@@ -262,7 +265,8 @@
       <label>備考</label>
       <textarea id="f-biko" placeholder="任意"></textarea>
 
-      <button class="primary-btn" id="submit-btn" onclick="submitForm()">送信する</button>
+      <p id="high-defect-warning" class="warning-note" style="display:none">不良率10％以上のため、森泉に要報告</p>
+      <button class="primary-btn" id="submit-btn" onclick="submitForm()">送信</button>
     </div>
 
     <!-- ③ 完了画面 -->
@@ -343,6 +347,7 @@ function init() {
     opt.textContent = name;
     kizuSel.appendChild(opt);
   });
+  document.getElementById('f-suryo').addEventListener('input', updateDefectRateWarning);
   loadMasters();
   initGoogleSignIn();
 }
@@ -738,7 +743,19 @@ function removeItem(index) {
   updateKizuGenInVisibility();
 }
 
+/**
+ * 不良率(不良数合計÷加工数)が10％以上のとき、送信ボタンの上に要報告の注意文を出す(2026-08-19新設)。
+ * items(不良項目の追加分)が変わるたびにrenderChips()から、加工数が変わるたびに入力イベントから呼ぶ。
+ */
+function updateDefectRateWarning() {
+  const suryo = Number(document.getElementById('f-suryo').value) || 0;
+  const totalQty = items.reduce((sum, it) => sum + (Number(it.qty) || 0), 0);
+  const rate = suryo > 0 ? (totalQty / suryo) * 100 : 0;
+  document.getElementById('high-defect-warning').style.display = (suryo > 0 && rate >= 10) ? '' : 'none';
+}
+
 function renderChips() {
+  updateDefectRateWarning();
   const wrap = document.getElementById('item-chips');
   wrap.innerHTML = '';
   items.forEach((item, i) => {
@@ -805,7 +822,7 @@ function submitForm() {
     if (result.ok === false) {
       showToast('送信に失敗しました: ' + (result.error || ''));
       btn.disabled = false;
-      btn.textContent = '送信する';
+      btn.textContent = '送信';
       return;
     }
     document.getElementById('done-heading').textContent = editingId ? '内容を更新しました' : '入力内容を受け付けました';
