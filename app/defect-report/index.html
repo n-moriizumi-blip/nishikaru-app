@@ -112,6 +112,10 @@
   .primary-btn:disabled { background: #D9DDE1; color: #8A93A0; cursor: default; }
   .secondary-btn { width: 100%; margin-top: 10px; padding: 11px; font-size: 14px; background: #fff; color: #1F3A52; border: 1px solid #C7CDD3; border-radius: 12px; cursor: pointer; }
 
+  /* 「＋この不良項目を追加」ボタン。入力欄と見分けにくいとの指摘で、点線+山吹色で強調(2026-08-19) */
+  .add-item-btn { width: 100%; margin-top: 10px; padding: 11px; font-size: 14px; font-weight: 700; background: #FFF6E0; color: #1F3A52; border: 1.5px dashed #F2A900; border-radius: 12px; cursor: pointer; }
+  .add-item-btn:active { background: #FDECC8; }
+
   .toast {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(.95);
     background: #1F3A52; color: #fff; padding: 20px 28px; border-radius: 16px; font-size: 17px;
@@ -253,7 +257,7 @@
       <div id="item-worker2-field" style="display:none;margin-top:6px">
         <select id="item-worker2"><option value="">担当者2を選択</option></select>
       </div>
-      <button type="button" class="secondary-btn" onclick="addItem()" style="margin-top:8px">＋ この不良項目を追加</button>
+      <button type="button" class="add-item-btn" onclick="addItem()" style="margin-top:8px">＋ この不良項目を追加</button>
       <div class="chips" id="item-chips"></div>
 
       <div id="kizugenin-field" style="display:none">
