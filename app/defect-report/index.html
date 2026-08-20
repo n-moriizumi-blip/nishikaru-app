@@ -242,7 +242,7 @@
         </div>
         <div class="field-with-label">
           <span class="mini-label">不良数</span>
-          <input type="number" id="item-qty" placeholder="不良数" min="1">
+          <input type="number" id="item-qty" placeholder="不良数" min="0">
         </div>
       </div>
       <div class="field-with-label" style="margin-top:8px">
@@ -724,7 +724,7 @@ function addItem() {
   const detailInput = document.getElementById('item-detail');
   const worker2Select = document.getElementById('item-worker2');
   const qty = parseInt(qtyInput.value, 10);
-  if (!sel.value || !qty || qty < 1) {
+  if (!sel.value || qtyInput.value === '' || isNaN(qty) || qty < 0) {
     showToast('不良項目と不良数を選んでください');
     return;
   }
